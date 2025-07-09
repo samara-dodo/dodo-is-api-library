@@ -1,0 +1,5 @@
+# Async
+anyio~=4.9                  # Для запуска корутин внутри event loop.
+
+# HTTP client
+httpx~=0.28                 # Для отправки HTTP запросов.
