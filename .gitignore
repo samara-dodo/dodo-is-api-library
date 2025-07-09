@@ -1,0 +1,10 @@
+# Environment.
+.env
+.venv/
+
+# Packages.
+dist/
+
+# Python cache.
+__pycache__/
+.pyc
