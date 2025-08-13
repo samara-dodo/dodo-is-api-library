@@ -80,9 +80,20 @@ class ApiAccounting():
             - division administrator - Администратор подразделения
             - store Manager - Менеджер офиса
         """
-        user_data: dict[str, Any] = await self.get_user_data(user_id=user_id)
+        user_data: dict[str, Any] = await self.__get_user_data(user_id=user_id)
         self.__sales_get_validate_scopes(user_scopes=user_data['scopes'])
-        return await client.send_async_request(**self.__sales_get_args(user_data['access_token'], order_source, period_from, period_to, units, sales_channel, skip, take))
+        return await client.send_request(
+            **self.__sales_get_args(
+                user_data['access_token'],
+                order_source,
+                period_from,
+                period_to,
+                units,
+                sales_channel,
+                skip,
+                take,
+            ),
+        )
 
     def __sales_get_args(
         self,
@@ -112,7 +123,9 @@ class ApiAccounting():
                     'orderSource': order_source,
                     'from': period_from,
                     'to': period_to,
-                    'units': ','.join(u.replace("-", "") for u in units) if units else None,
+                    'units': ','.join(
+                        u.replace("-", "") for u in units
+                    ) if units else None,
                     'salesChannel': sales_channel,
                     'skip': skip,
                     'take': take,
