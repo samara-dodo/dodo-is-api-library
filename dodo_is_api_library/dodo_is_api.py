@@ -45,16 +45,15 @@ class DodoISApi:
         self.redirect_uri: str = redirect_uri
 
         # Заполняются автоматически.
-        self.__base_url: str = 'https://api.dodois.io/dodopizza/ru'
+        self.__base_url: str = 'https://api.dodois.io'
 
         # Расширяемые классы.
         self.auth = ApiAuth(
             client_id=client_id,
             client_secret=client_secret,
-            get_user_data=get_user_data,
-            set_user_data=set_user_data,
+            get_user_data=self.get_user_data,
+            set_user_data=self.set_user_data,
             redirect_uri=redirect_uri,
-            base_url=self.__base_url,
         )
         self.core = ApiCore(
             get_user_data=self.get_user_data,
