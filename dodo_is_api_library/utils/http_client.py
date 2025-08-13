@@ -2,11 +2,9 @@
 Модуль обработки HTTP запросов.
 """
 
-import asyncio
+from typing import Any
 
-import anyio
 from http import HTTPStatus
-import anyio.from_thread
 import httpx
 
 
@@ -16,21 +14,21 @@ class HttpMethods:
     """
 
     # Безопасные.
-    HEAD: str = 'HEAD'
-    GET: str = 'GET'
-    OPTIONS: str = 'OPTIONS'
+    HEAD: str = "HEAD"
+    GET: str = "GET"
+    OPTIONS: str = "OPTIONS"
     # Небезопасные.
-    DELETE: str = 'DELETE'
-    PATCH: str = 'PATCH'
-    POST: str = 'POST'
-    PUT: str = 'PUT'
+    DELETE: str = "DELETE"
+    PATCH: str = "PATCH"
+    POST: str = "POST"
+    PUT: str = "PUT"
 
     @classmethod
-    def all_safe(cls) -> tuple[str]:
+    def all_safe(cls) -> tuple[str, str, str]:
         return (cls.HEAD, cls.GET, cls.OPTIONS)
 
     @classmethod
-    def all_unsafe(cls) -> tuple[str]:
+    def all_unsafe(cls) -> tuple[str, str, str, str]:
         return (cls.DELETE, cls.PATCH, cls.POST, cls.PUT)
 
 
@@ -39,9 +37,10 @@ class HttpContentType:
     Класс представления HTTP Content-Type.
     """
 
-    APPLICATION_JSON: str = 'application/json'
-    MULTIPART_FORM_DATA: str = 'multipart/form-data'
-    TEXT_PLAIN: str = 'text/plain'
+    APPLICATION_JSON: str = "application/json"
+    APPLICATION_X_WWW_FORM_URLENCODED: str = "application/x-www-form-urlencoded"
+    MULTIPART_FORM_DATA: str = "multipart/form-data"
+    TEXT_PLAIN: str = "text/plain"
 
 
 class HttpClient:
@@ -49,41 +48,16 @@ class HttpClient:
     Класс обработки HTTP запросов.
     """
 
-    def send_sync_request(
-        self,
+    @staticmethod
+    async def send_request(
         method: str,
         url: str,
         query_params: dict | None = None,
         data: dict | None = None,
         headers: dict | None = None,
-        auth: dict | None = None,
+        auth: Any = None,
         timeout_sec: int = 15,
-    ) -> tuple[int, dict, dict]:
-        """
-        Отправляет HTTP запрос с указанными параметрами.
-
-        Возвращает:
-            - статус-код ответа
-            - тело ответа
-            - заголовки ответа
-        """
-        try:
-            # INFO. Проверка, запущен ли event loop (например, внутри FastAPI).
-            asyncio.get_running_loop()
-            return anyio.from_thread.run(self.send_async_request, method, url, query_params, data, headers, auth, timeout_sec)
-        except RuntimeError:
-            return asyncio.run(self.send_async_request(method, url, query_params, data, headers, auth, timeout_sec))
-
-    async def send_async_request(
-        self,
-        method: str,
-        url: str,
-        query_params: dict | None = None,
-        data: dict | None = None,
-        headers: dict | None = None,
-        auth: any = None,
-        timeout_sec: int = 15,
-    ) -> tuple[int, dict, dict]:
+    ) -> tuple[int, Any, dict]:
         """
         Отправляет HTTP запрос с указанными параметрами.
 
@@ -99,9 +73,9 @@ class HttpClient:
                 raise ValueError('Данные "data" должны быть dict')
             if headers is None:
                 headers = {}
-            headers.setdefault('Content-Type', HttpContentType.APPLICATION_JSON)
+            headers.setdefault("Content-Type", HttpContentType.APPLICATION_JSON)
         else:
-            raise ValueError(f'Метод {method} не поддерживается')
+            raise ValueError(f"Метод {method} не поддерживается")
 
         r_headers: dict = {}
         async with httpx.AsyncClient() as client:
@@ -110,32 +84,32 @@ class HttpClient:
                     method=method,
                     url=url,
                     params=query_params,
-                    json=data,
+                    data=data,
                     headers=headers,
                     auth=auth,
                     timeout=httpx.Timeout(timeout_sec),
                 )
                 r_status: int = r.status_code
-                r_body: dict = r.json()
-                r_headers: httpx.Headers = r.headers
+                r_body: Any = r.json()
+                r_headers = dict(r.headers)
 
             except httpx.ConnectError:
-                r_status: dict = HTTPStatus.BAD_GATEWAY.value  # 502
-                r_body: dict = {'error': 'Соединение не установлено'}
+                r_status = HTTPStatus.BAD_GATEWAY.value  # 502
+                r_body = {"error": "Соединение не установлено"}
             except (httpx.ConnectTimeout, httpx.ReadTimeout):
-                r_status: int = HTTPStatus.GATEWAY_TIMEOUT.value  # 504
-                r_body: dict = {'error': "Превышено время ожидания соединения"}
+                r_status = HTTPStatus.GATEWAY_TIMEOUT.value  # 504
+                r_body = {"error": "Превышено время ожидания соединения"}
             except httpx.LocalProtocolError as e:
-                r_status: int = HTTPStatus.BAD_REQUEST.value  # 400
-                r_body: dict = {
-                    'error': 'Неправильный протокол запроса',
-                    'detail': str(e),
+                r_status = HTTPStatus.BAD_REQUEST.value  # 400
+                r_body = {
+                    "error": "Неправильный протокол запроса",
+                    "detail": str(e),
                 }
             except (httpx.RequestError, Exception) as e:
-                r_status: int = HTTPStatus.INTERNAL_SERVER_ERROR.value  # 500
-                r_body: dict = {
-                    'error': 'Ошибка обработки запроса сервером',
-                    'detail': str(e),
+                r_status = HTTPStatus.INTERNAL_SERVER_ERROR.value  # 500
+                r_body = {
+                    "error": "Ошибка обработки запроса сервером",
+                    "detail": str(e),
                 }
 
         return r_status, r_body, r_headers
