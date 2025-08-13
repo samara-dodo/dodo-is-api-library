@@ -33,7 +33,7 @@ class ApiStaff():
         base_url: str,
     ):
         self.__get_user_data: Callable = get_user_data
-        self.__base_url: str = base_url
+        self.__base_url: str = f'{base_url}/dodopizza/ru/staff'
 
     # Смены сотрудников (по пиццериям)
 
@@ -117,7 +117,7 @@ class ApiStaff():
 
         return {
             'method': HttpMethods.GET,
-            'url': f'{self.__base_url}/staff/shifts',
+            'url': f'{self.__base_url}/shifts',
             'query_params': {
                 k: v
                 for k, v
@@ -227,7 +227,7 @@ class ApiStaff():
             clock_in_to: str = clock_in_to.strftime('%Y-%m-%dT%H:%M:%S')
         return {
             'method': HttpMethods.GET,
-            'url': f'{self.__base_url}/staff/members/shifts',
+            'url': f'{self.__base_url}/members/shifts',
             'query_params': {
                 k: v
                 for k, v

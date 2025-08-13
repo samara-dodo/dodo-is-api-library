@@ -32,7 +32,7 @@ class ApiAccounting():
         base_url: str,
     ):
         self.__get_user_data: Callable = get_user_data
-        self.__base_url: str = base_url
+        self.__base_url: str = f'{base_url}/dodopizza/ru/accounting'
 
     # Продажи
 
@@ -115,7 +115,7 @@ class ApiAccounting():
             period_to: str = period_to.strftime('%Y-%m-%dT%H:%M:%S')
         return {
             'method': HttpMethods.GET,
-            'url': f'{self.__base_url}/accounting/sales',
+            'url': f'{self.__base_url}/sales',
             'query_params': {
                 k: v
                 for k, v
