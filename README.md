@@ -21,15 +21,15 @@ dodo_is: DodoISApi = DodoISApi(
     client_secret=settings.DODO_IS_CLIENT_SECRET,
     redirect_uri=settings.DODO_IS_REDIRECT_URI,
     get_user_data=async_get_user_data,
-    set_user_data=async_set_user_data,
+    update_user_data=async_update_user_data,
 )
 ```
 где:
 - client_id: id приложения в Marketplace
 - client_secret: секрет приложения в Marketplace
 - redirect_uri: адрес, на который вернется callback из DodoIS
-- get_user_data: асинхронная функция, которая может получать данные пользователя в сервисе
-- set_user_data: асинхронная функция, которая может записывать данные пользователя в сервисе
+- get_user_data: асинхронная функция, которая получает данные пользователя в сервисе
+- update_user_data: асинхронная функция, которая может записывает данные пользователя в сервисе
 
 Примеры реализации функций получения и сохранения данных пользователя:
 
@@ -76,13 +76,13 @@ async def get_user_data(
             user_data[key] = await redis_client.get(key=redis_key.format(ip=user_ip))
     return user_data
 
-async def set_user_data(
+async def update_user_data(
     user_data: dict[str, Any],
     user_id: int | None = None,
     user_ip: str | None = None,
 ) -> None:
     """
-    Сохраняет данные пользователя по ID и IP-адресу запроса.
+    Обновляет данные пользователя по ID и IP-адресу запроса.
 
     Хранятся в PostgreSQL (доступны по user_id):
         - access_token
@@ -95,10 +95,7 @@ async def set_user_data(
         async with async_session_maker() as session:
             await user_repository.update_by_id(
                 obj_id=user_id,
-                obj_data={
-                    "dodois_token_access": user_data["access_token"],
-                    "dodois_token_refresh": user_data["refresh_token"],
-                },
+                obj_data=user_data,
                 session=session,
             )
     if user_ip:
@@ -106,11 +103,12 @@ async def set_user_data(
             ("code_challenge", RedisKeys.CODE_CHALLENGE_BY_IP),
             ("code_verifier", RedisKeys.CODE_VERIFIER_BY_IP),
         ):
-            await redis_client.set(
-                key=redis_key.format(ip=user_ip),
-                value=user_data[key],
-                ex_sec=TimeIntervals.SECONDS_IN_1_DAY,
-            )
+            if key in user_data:
+                await redis_client.set(
+                    key=redis_key.format(ip=user_ip),
+                    value=user_data[key],
+                    ex_sec=TimeIntervals.SECONDS_IN_1_DAY,
+                )
 ```
 
 ### Релиз в PyPi
