@@ -11,6 +11,12 @@
 pip install git+https://github.com/samara-dodo/dodo-is-api-library.git
 ```
 
+Или через Poetry для установки и обновления:
+```bash
+poetry add git+https://github.com/samara-dodo/dodo-is-api-library.git
+poetry update dodo-is-api-library
+```
+
 Для инициализации библиотеки в коде:
 
 ```python
