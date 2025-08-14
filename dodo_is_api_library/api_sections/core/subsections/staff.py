@@ -30,10 +30,12 @@ class ApiStaff():
     def __init__(
         self,
         get_user_data: Callable,
+        raise_http_exception: Callable,
         base_url: str,
     ):
         self.__get_user_data: Callable = get_user_data
-        self.__base_url: str = f'{base_url}/dodopizza/ru/staff'
+        self.__raise_http_exception: Callable = raise_http_exception
+        self.__base_url: str = f'{base_url}/staff'
 
     # Смены сотрудников (по пиццериям)
 
@@ -86,35 +88,34 @@ class ApiStaff():
         user_data: dict[str, Any] = await self.__get_user_data(user_id=user_id)
         self.__shifts_get_validate_scopes(user_scopes=user_data['scopes'])
         return await client.send_request(
-            **self.__shifts_get_args(
-                user_data['access_token'],
-                clock_in_from,
-                clock_in_to,
-                units,
-                staff_type_name,
-                skip,
-                take,
+            **self.__shifts_get_http_params(
+                access_token=user_data['access_token'],
+                clock_in_from=clock_in_from,
+                clock_in_to=clock_in_to,
+                units=units,
+                staff_type_name=staff_type_name,
+                skip=skip,
+                take=take,
             ),
         )
 
-    def __shifts_get_args(
+    def __shifts_get_http_params(
         self,
         access_token: str,
         clock_in_from: str | datetime,
         clock_in_to: str | date,
-        units: list[str],
-        staff_type_name: str | None = None,
-        skip: int = 0,
-        take: int = 100,
+        units: list[str | UUID],
+        staff_type_name: str | None,
+        skip: int,
+        take: int,
     ) -> dict[str, Any]:
         """
-        Возвращает аргументы для метода shifts_get.
+        Возвращает параметры HTTP запроса для shifts_get.
         """
         if isinstance(clock_in_from, datetime):
-            clock_in_from: str = clock_in_from.strftime('%Y-%m-%dT%H:%M:%S')
+            clock_in_from = clock_in_from.strftime('%Y-%m-%dT%H:%M:%S')
         if isinstance(clock_in_to, date):
-            clock_in_to: str = clock_in_to.strftime('%Y-%m-%d')
-
+            clock_in_to = clock_in_to.strftime('%Y-%m-%d')
         return {
             'method': HttpMethods.GET,
             'url': f'{self.__base_url}/shifts',
@@ -124,9 +125,7 @@ class ApiStaff():
                 in {
                     'clockInFrom': clock_in_from,
                     'clockInTo': clock_in_to,
-                    'units': ','.join(
-                        str(u).replace("-", "") for u in units
-                    ) if units else None,
+                    'units': ','.join(str(u).replace("-", "") for u in units),
                     'staffTypeName': staff_type_name,
                     'skip': skip,
                     'take': take,
@@ -199,32 +198,32 @@ class ApiStaff():
         user_data: dict[str, Any] = await self.__get_user_data(user_id=user_id)
         self.__members_shifts_get_validate_scopes(user_scopes=user_data['scopes'])
         return await client.send_request(
-            **self.__members_shifts_get_args(
-                user_data['access_token'],
-                clock_in_from,
-                clock_in_to,
-                staff_ids,
-                skip,
-                take,
+            **self.__members_shifts_get_http_params(
+                access_token=user_data['access_token'],
+                clock_in_from=clock_in_from,
+                clock_in_to=clock_in_to,
+                staff_ids=staff_ids,
+                skip=skip,
+                take=take,
             ),
         )
 
-    def __members_shifts_get_args(
+    def __members_shifts_get_http_params(
         self,
         access_token: str,
         clock_in_from: str | datetime,
         clock_in_to: str | date,
         staff_ids: list[str | UUID],
-        skip: int = 0,
-        take: int = 100,
+        skip: int,
+        take: int,
     ) -> dict[str, Any]:
         """
         Возвращает аргументы для методов members_shifts_get.
         """
         if isinstance(clock_in_from, datetime):
-            clock_in_from: str = clock_in_from.strftime('%Y-%m-%dT%H:%M:%S')
+            clock_in_from = clock_in_from.strftime('%Y-%m-%dT%H:%M:%S')
         if isinstance(clock_in_to, date):
-            clock_in_to: str = clock_in_to.strftime('%Y-%m-%dT%H:%M:%S')
+            clock_in_to = clock_in_to.strftime('%Y-%m-%dT%H:%M:%S')
         return {
             'method': HttpMethods.GET,
             'url': f'{self.__base_url}/members/shifts',

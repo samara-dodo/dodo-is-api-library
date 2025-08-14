@@ -1,10 +1,11 @@
 """
-Раздел документации "Команда".
+Раздел документации "Учёт".
 """
 
 from datetime import (
     datetime,
 )
+from http import HTTPStatus
 from typing import (
     Any,
     Callable,
@@ -29,10 +30,12 @@ class ApiAccounting():
     def __init__(
         self,
         get_user_data: Callable,
+        raise_http_exception: Callable,
         base_url: str,
     ):
         self.__get_user_data: Callable = get_user_data
-        self.__base_url: str = f'{base_url}/dodopizza/ru/accounting'
+        self.__raise_http_exception: Callable = raise_http_exception
+        self.__base_url: str = f'{base_url}/accounting'
 
     # Продажи
 
@@ -41,11 +44,12 @@ class ApiAccounting():
         period_from: str | datetime,
         period_to: str | datetime,
         units: Iterable[str | UUID],
+        user_id: Any,
+        user_data: dict[str, Any] | None = None,
         order_source: str | None = None,
         sales_channel: str | None = None,
         skip: int = 0,
         take: int = 100,
-        user_id: Any = None,
     ) -> tuple[int, dict, dict]:
         """
         Учёт → Продажи
@@ -60,16 +64,17 @@ class ApiAccounting():
         смещая его на количество уже полученных записей. Повторять до тех пор,
         пока не будет достигнут конец списка (isEndOfListReached = true).
 
-        Query параметры:
+        Аргументы:
             - period_from [str | datetime]: начало периода в формате ISO 8601 (2011-08-01T18:31:42)
             - period_to [str | datetime]: конец периода в формате ISO 8601 (2011-09-02T19:21:53)
             - units [Iterable[str | UUID]]: список заведений (пиццерий) Dodo IS в формате UUID
+            - user_id [Any]: уникальный идентификатор пользователя в базе данных сервиса
             - order_source [str]: источник заказа (CallCenter / Website / Dine-in / MobileApp / Manager / Aggregator / Kiosk)
             - sales_channel [str]: канал продаж (Dine-in / Takeaway / Delivery)
             - skip [int]: количество записей, которые следует пропустить
             - take [int]: количество записей, которые следует выбрать
 
-        Требования к query параметрам:
+        Требования к аргументам:
             - в units можно перечислить до 30 заведений в одном запросе
             - в units следует перечислять UUID-ы строго через запятую без пробелов
             - в units следует перечислять UUID-ы без разделителя "-" между их частями
@@ -80,39 +85,47 @@ class ApiAccounting():
             - division administrator - Администратор подразделения
             - store Manager - Менеджер офиса
         """
-        user_data: dict[str, Any] = await self.__get_user_data(user_id=user_id)
+        if user_data is None:
+            user_data = await self.__get_user_data(user_id=user_id)
         self.__sales_get_validate_scopes(user_scopes=user_data['scopes'])
-        return await client.send_request(
-            **self.__sales_get_args(
-                user_data['access_token'],
-                order_source,
-                period_from,
-                period_to,
-                units,
-                sales_channel,
-                skip,
-                take,
+        status_, data, _ = await client.send_request(
+            **self.__sales_get_http_params(
+                access_token=user_data['access_token'],
+                period_from=period_from,
+                period_to=period_to,
+                units=units,
+                order_source=order_source,
+                sales_channel=sales_channel,
+                skip=skip,
+                take=take,
             ),
         )
+        if status_ != HTTPStatus.OK:
+            self.__raise_http_exception(
+                status_code=status_,
+                detail=data,
+            )
+        return data
 
-    def __sales_get_args(
+
+    def __sales_get_http_params(
         self,
         access_token: str,
         period_from: str | datetime,
         period_to: str | datetime,
-        units: Iterable[str],
-        order_source: str | None = None,
-        sales_channel: str | None = None,
-        skip: int = 0,
-        take: int = 100,
+        units: Iterable[str | UUID],
+        order_source: str | None,
+        sales_channel: str | None,
+        skip: int,
+        take: int,
     ) -> dict[str, Any]:
         """
-        Возвращает аргументы для методов prodazhi_get_*.
+        Возвращает параметры HTTP запроса для sales_get.
         """
         if isinstance(period_from, datetime):
-            period_from: str = period_from.strftime('%Y-%m-%dT%H:%M:%S')
+            period_from = period_from.strftime('%Y-%m-%dT%H:%M:%S')
         if isinstance(period_to, datetime):
-            period_to: str = period_to.strftime('%Y-%m-%dT%H:%M:%S')
+            period_to = period_to.strftime('%Y-%m-%dT%H:%M:%S')
         return {
             'method': HttpMethods.GET,
             'url': f'{self.__base_url}/sales',
@@ -123,9 +136,7 @@ class ApiAccounting():
                     'orderSource': order_source,
                     'from': period_from,
                     'to': period_to,
-                    'units': ','.join(
-                        u.replace("-", "") for u in units
-                    ) if units else None,
+                    'units': ','.join(str(u).replace("-", "") for u in units),
                     'salesChannel': sales_channel,
                     'skip': skip,
                     'take': take,
