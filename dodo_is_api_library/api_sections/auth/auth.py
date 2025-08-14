@@ -1,8 +1,8 @@
-import base64
-import hashlib
+"""
+Раздел документации "Auth".
+"""
+
 from http import HTTPStatus
-from httpx._exceptions import HTTPError
-import secrets
 from typing import (
     Any,
     Callable,
@@ -11,9 +11,9 @@ from typing import (
 from dodo_is_api_library.utils.http_client import HttpMethods
 from dodo_is_api_library.utils.http_client import (
     HttpClient,
-    HttpContentType,
     HttpMethods,
 )
+from dodo_is_api_library.utils.scopes import DodoISScopes
 
 
 class ApiAuth:
@@ -23,210 +23,117 @@ class ApiAuth:
 
     def __init__(
         self,
-        client_id: str,
-        client_secret: str,
         get_user_data: Callable,
-        set_user_data: Callable,
-        redirect_uri: str,
+        raise_http_exception: Callable,
+        base_url: str,
     ):
-        self.client_id: str = client_id
-        self.client_secret: str = client_secret
-        self.get_user_data: Callable = get_user_data
-        self.set_user_data: Callable = set_user_data
-        self.redirect_uri: str = redirect_uri
+        self.__get_user_data: Callable = get_user_data
+        self.__raise_http_exception: Callable = raise_http_exception
+        self.__base_url: str = base_url
 
-        # Заполняются автоматически.
-        self.__base_url: str = "https://auth.dodois.io"
 
-    # OAuth авторизация.
-
-    async def get_auth_url(
-        self,
-        user_id: int | str | None = None,
-        user_ip: str | None = None,
-    ) -> str:
-        """
-        Возвращает ссылку для авторизации в DodoIS.
-
-        Документация: https://buildin.ai/share/f5caf1a5-e60e-48a2-8eab-157cec5d9881
-        """
-        user_data: dict[str, Any] = await self.get_user_data(
-            user_id=user_id,
-            user_ip=user_ip,
-        )
-        code_verifier, code_challenge = self.__generate_oauth_pkce_code_pair()
-        user_data.update(
-            {
-                "code_verifier": code_verifier,
-                "code_challenge": code_challenge,
-            },
-        )
-        await self.set_user_data(
-            user_id=user_id,
-            user_ip=user_ip,
-            user_data=user_data,
-        )
-        return (
-            f"{self.__base_url}/connect/authorize?"
-            f"client_id={self.client_id}&"
-            f"scope={' '.join(user_data['scopes'])}&"
-            f"response_type=code&"
-            f"redirect_uri={self.redirect_uri}&"
-            f"code_challenge={code_challenge}&"
-            f"code_challenge_method=S256"
-        )
-
-    async def get_auth_token_data(
-        self,
-        code: str,
-        user_ip: str,
-        user_id: int | str | None = None,
-    ) -> dict[str, Any]:
-        """
-        Возвращает данные токена авторизации в DodoIS.
-
-        Документация: https://buildin.ai/share/f5caf1a5-e60e-48a2-8eab-157cec5d9881
-        """
-        user_data: dict[str, Any] = await self.get_user_data(
-            user_id=user_id,
-            user_ip=user_ip,
-        )
-        status_, data, _ = await HttpClient.send_request(
-            method=HttpMethods.POST,
-            url=f"{self.__base_url}/connect/token",
-            data={
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "grant_type": "authorization_code",
-                "code": code,
-                "code_verifier": user_data["code_verifier"],
-                "scope": " ".join(user_data["scopes"]),
-                "redirect_uri": self.redirect_uri,
-            },
-            headers={"Content-Type": HttpContentType.APPLICATION_X_WWW_FORM_URLENCODED},
-        )
-        if status_ != HTTPStatus.OK:
-            raise HTTPError(
-                message=(
-                    f"Error getting auth token data from DodoIS with status {status_}. "
-                    f"Response data: {data}"
-                ),
-            )
-        return data
-
-    async def get_user_profile(
-        self,
-        access_token: str,
-    ) -> dict[str, Any]:
-        """
-        Возвращает данные пользователя в DodoIS.
-
-        Документация: https://buildin.ai/share/f5caf1a5-e60e-48a2-8eab-157cec5d9881
-        """
-        status_, data, _ = await HttpClient.send_request(
-            method=HttpMethods.GET,
-            url=f"{self.__base_url}/connect/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        if status_ != HTTPStatus.OK:
-            raise HTTPError(
-                message=(
-                    f"Error getting user profile from DodoIS with status {status_}. "
-                    f"Response data: {data}"
-                ),
-            )
-        return data
-
-    async def handle_auth_callback(
-        self,
-        code: str,
-        user_id: Any = None,
-        user_ip: str | None = None,
-    ):
-        """
-        Принимает код авторизации в DodoIS, обменивает его на Access и Refresh токены
-        и сохраняет их в сервисе.
-
-        Документация: https://buildin.ai/share/f5caf1a5-e60e-48a2-8eab-157cec5d9881
-        """
-        user_data: dict[str, Any] = await self.get_user_data(
-            user_id=user_id,
-            user_ip=user_ip,
-        )
-        status_, data, _ = await HttpClient.send_request(
-            method=HttpMethods.POST,
-            url=f"{self.__base_url}/connect/token",
-            data={
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "grant_type": "authorization_code",
-                "code": code,
-                "code_verifier": user_data["code_verifier"],
-                "scope": user_data["scopes"],
-                "redirect_uri": self.redirect_uri,
-            },
-            headers={"Content-Type": HttpContentType.APPLICATION_X_WWW_FORM_URLENCODED},
-        )
-        if status_ != HTTPStatus.OK:
-            raise HTTPError(
-                message=(
-                    f'Error getting auth token data from DodoIS with status "{status_}"!\n'
-                    f"Response data: {data}",
-                ),
-            )
-        user_data.update(
-            {
-                "access_token": data["access_token"],
-                "refresh_token": data["refresh_token"],
-            },
-        )
-        await self.set_user_data(
-            user_id=user_id,
-            user_data=user_data,
-        )
-
-    async def refresh_token_pair_post(
+    async def roles_list_get(
         self,
         user_id: Any,
-    ):
+        user_data: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """
-        Обновляет Access и Refresh токены по Refresh токену.
+        Auth → Список ролей
 
-        Документация: https://buildin.ai/share/f5caf1a5-e60e-48a2-8eab-157cec5d9881
+        Возвращает список всех существующих ролей пользователей.
+
+        Документация: https://docs.dodois.io/docs/auth/ee3cd76b10a13-auth-spisok-rolej
+        URL: https://api.dodois.io/auth/roles/list
+
+        Необходимы scopes:
+            - user.role:read - роли и юниты пользователя
         """
-        user_data: dict[str, Any] = await self.get_user_data(user_id=user_id)
+        if user_data is None:
+            user_data = await self.__get_user_data(user_id=user_id)
+        self.__roles_list_get_validate_scopes(user_data=user_data)
         status_, data, _ = await HttpClient.send_request(
-            method=HttpMethods.POST,
-            url=f"{self.__base_url}/connect/token",
-            data={
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "grant_type": "refresh_token",
-                "refresh_token": user_data["refresh_token"],
-            },
-            headers={"Content-Type": HttpContentType.APPLICATION_X_WWW_FORM_URLENCODED},
+            **self.__roles_list_get_http_params(user_data=user_data),
         )
         if status_ != HTTPStatus.OK:
-            raise Exception(
-                f'Error refreshing Access token from DodoIS with status "{status_}"!\n'
-                f"Response data: {data}",
+            self.__raise_http_exception(
+                status_code=status_,
+                detail=data,
             )
-        await self.set_user_data(
-            user_id=user_id,
-            access=data["access_token"],
-            refresh=data["refresh_token"],
+        return data
+
+    def __roles_list_get_http_params(
+        self,
+        user_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Возвращает параметры HTTP запроса для roles_list_get."""
+        return {
+            "method": HttpMethods.GET,
+            "url": f"{self.__base_url}/roles/list",
+            "headers": {"Authorization": f"Bearer {user_data['access_token']}"},
+        }
+
+    def __roles_list_get_validate_scopes(
+        self,
+        user_data: dict[str, Any],
+    ) -> None:
+        """
+        Проверяет наличие обязательных scopes.
+        """
+        DodoISScopes.validate_scopes(
+            user_scopes=user_data['scopes'],
+            required_scopes={DodoISScopes.USER_ROLE_READ},
         )
 
-    def __generate_oauth_pkce_code_pair(
+    async def roles_units_get(
         self,
-        length: int = 56,
-    ) -> tuple[str, str]:
+        user_id: Any,
+        user_data: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """
-        Генерирует пару кодов: code_verifier и code_challenge.
+        Auth → Юниты пользователя
+
+        Возвращает список юнитов (пиццерий, или других заведений в рамках
+        концепции бизнеса) доступных пользователю, от имени которого
+        делается запрос, с указанием доступных ролей в каждом из этих юнитов.
+
+        Документация: https://docs.dodois.io/docs/auth/1e28e79cbde05-auth-yunity-polzovatelya
+        URL: https://api.dodois.io/auth/roles/units
+
+        Необходимы scopes:
+            - user.role:read - роли и юниты пользователя
         """
-        code_verifier: str = secrets.token_urlsafe(length)[:length]
-        digest: bytes = hashlib.sha256(code_verifier.encode("utf-8")).digest()
-        code_challenge: str = (
-            base64.urlsafe_b64encode(digest).rstrip(b"=").decode("utf-8")
+        if user_data is None:
+            user_data = await self.__get_user_data(user_id=user_id)
+        self.__roles_units_get_validate_scopes(user_data=user_data)
+        status_, data, _ = await HttpClient.send_request(
+            **self.__roles_units_get_http_params(user_data=user_data),
         )
-        return code_verifier, code_challenge
+        if status_ != HTTPStatus.OK:
+            self.__raise_http_exception(
+                status_code=status_,
+                detail=data,
+            )
+        return data
+
+    def __roles_units_get_http_params(
+        self,
+        user_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Возвращает параметры HTTP запроса для roles_units_get."""
+        return {
+            "method": HttpMethods.GET,
+            "url": f"{self.__base_url}/roles/units",
+            "headers": {"Authorization": f"Bearer {user_data['access_token']}"},
+        }
+
+    def __roles_units_get_validate_scopes(
+        self,
+        user_data: dict[str, Any],
+    ) -> None:
+        """
+        Проверяет наличие обязательных scopes.
+        """
+        DodoISScopes.validate_scopes(
+            user_scopes=user_data['scopes'],
+            required_scopes={DodoISScopes.USER_ROLE_READ},
+        )
