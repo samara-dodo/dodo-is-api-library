@@ -16,7 +16,16 @@ class ApiCore():
     def __init__(
         self,
         get_user_data: Callable,
+        raise_http_exception: Callable,
         base_url: str,
     ):
-        self.accounting = ApiAccounting(get_user_data=get_user_data, base_url=base_url)
-        self.staff = ApiStaff(get_user_data=get_user_data, base_url=base_url)
+        self.accounting = ApiAccounting(
+            get_user_data=get_user_data,
+            raise_http_exception=raise_http_exception,
+            base_url=base_url,
+        )
+        self.staff = ApiStaff(
+            get_user_data=get_user_data,
+            raise_http_exception=raise_http_exception,
+            base_url=base_url,
+        )
