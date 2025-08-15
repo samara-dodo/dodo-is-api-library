@@ -8,6 +8,7 @@ from dodo_is_api_library.api_sections import (
     ApiAuth,
     ApiCore,
     ApiOAuth,
+    ApiMarketplace,
 )
 from dodo_is_api_library.utils.exceptions import raise_http_exception
 
@@ -71,4 +72,11 @@ class DodoISApi:
             redirect_uri=self.__redirect_uri,
             raise_http_exception=self.__raise_http_exception,
             base_url=f"{self.__base_url_oauth}/connect",
+        )
+        self.marketplace = ApiMarketplace(
+            get_user_data=self.__get_user_data,
+            raise_http_exception=raise_http_exception,
+            # INFO. Содержит в себе разделение по URL на две категории.
+            #       Разделение происходит в ApiMarketplace.
+            base_url=self.__base_url,
         )
