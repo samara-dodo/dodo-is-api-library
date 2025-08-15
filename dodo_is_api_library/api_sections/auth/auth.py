@@ -34,7 +34,7 @@ class ApiAuth:
 
     async def roles_list_get(
         self,
-        user_id: Any,
+        user_id: Any = None,
         user_data: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """
@@ -86,7 +86,7 @@ class ApiAuth:
 
     async def roles_units_get(
         self,
-        user_id: Any,
+        user_id: Any = None,
         user_data: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """
