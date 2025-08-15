@@ -34,6 +34,7 @@ dodo_is: DodoISApi = DodoISApi(
     redirect_uri=settings.DODO_IS_REDIRECT_URI,
     get_user_data=async_get_user_data,
     update_user_data=async_update_user_data,
+    raise_http_exception=raise_http_exception,
 )
 ```
 где:
@@ -42,6 +43,7 @@ dodo_is: DodoISApi = DodoISApi(
 - redirect_uri: адрес, на который вернется callback из DodoIS
 - get_user_data: асинхронная функция, которая получает данные пользователя в сервисе
 - update_user_data: асинхронная функция, которая может записывает данные пользователя в сервисе
+- raise_http_exception [необязательно] - функция, которая будет перехватывать ошибки обращения к DodoIS
 
 Примеры реализации функций получения и сохранения данных пользователя:
 
@@ -121,6 +123,18 @@ async def update_user_data(
                     value=user_data[key],
                     ex_sec=TimeIntervals.SECONDS_IN_1_DAY,
                 )
+
+def raise_http_exception(
+    status_code: int,
+    detail: Any,
+) -> None:
+    """
+    Выбрасывает исключение при неудачном HTTP обращении.
+    """
+    raise HTTPException(
+        status_code=status_code,
+        detail=detail,
+    )
 ```
 
 ### Релиз в PyPi
