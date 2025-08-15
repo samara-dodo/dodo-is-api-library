@@ -17,6 +17,12 @@ poetry add git+https://github.com/samara-dodo/dodo-is-api-library.git
 poetry update dodo-is-api-library
 ```
 
+Внимание! Для установки зависимостей внутри Docker нужно в Dockerfile внести код:
+```bash
+# Устанавливает и настраивает git (для установки зависимостей не из PyPi, а из git).
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+```
+
 Для инициализации библиотеки в коде:
 
 ```python
