@@ -12,6 +12,7 @@ class DodoISScopes:
     PHONE = 'phone'                          # номер телефона
     PROFILE = 'profile'                      # профиль
     SALES = 'sales'                          # продажи
+    SHARED = 'shared'                        # общие
     STAFF_SHIFTS_READ = 'staffshifts:read'   # смены сотрудников / персонала, доступ на чтение
     USER_ROLE_READ = 'user.role:read'        # роли и юниты пользователя, доступ на чтение
 
