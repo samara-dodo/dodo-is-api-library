@@ -43,7 +43,7 @@ class ApiAccounting():
         self,
         period_from: str | datetime,
         period_to: str | datetime,
-        units: Iterable[str | UUID],
+        units: Iterable[str],
         user_id: Any,
         user_data: dict[str, Any] | None = None,
         order_source: str | None = None,
@@ -67,7 +67,7 @@ class ApiAccounting():
         Аргументы:
             - period_from [str | datetime]: начало периода в формате ISO 8601 (2011-08-01T18:31:42)
             - period_to [str | datetime]: конец периода в формате ISO 8601 (2011-09-02T19:21:53)
-            - units [Iterable[str | UUID]]: список заведений (пиццерий) Dodo IS в формате UUID
+            - units [Iterable[str]]: список заведений (пиццерий) Dodo IS
             - user_id [Any]: уникальный идентификатор пользователя в базе данных сервиса
             - order_source [str]: источник заказа (CallCenter / Website / Dine-in / MobileApp / Manager / Aggregator / Kiosk)
             - sales_channel [str]: канал продаж (Dine-in / Takeaway / Delivery)
@@ -82,8 +82,12 @@ class ApiAccounting():
             - диапазон дат между to и from параметрами не должен превышать 31 день
 
         Доступно для следующих ролей:
-            - division administrator - Администратор подразделения
-            - store Manager - Менеджер офиса
+            - division administrator - администратор подразделения
+            - store Manager - менеджер офиса
+
+        Требования к scopes:
+            - sales - продажи
+            - user.role:read - роли и юниты пользователя
         """
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
