@@ -51,7 +51,7 @@ class ApiUnits():
 
         Возвращает список пиццерий/кофеен с информацией о них.
 
-        Документация: https://api.dodois.io/dodopizza/ru/units/stores
+        Документация: https://docs.dodois.io/docs/dodo-is/f901f00320572-zavedeniya-informacziya-o-piczczeriyah-kofejnyah
         URL: https://api.dodois.io/dodopizza/ru/units/stores
 
         Для получения данных необходимо указывать параметр skip,
@@ -61,7 +61,7 @@ class ApiUnits():
 
         Аргументы:
             - business_id [str]: идентификатор бизнеса
-            - country_id [str | date]: идентификатор страны в формате ISO 3166-1 alpha-2
+            - country_id [str]: идентификатор страны в формате ISO 3166-1 alpha-2
             - organizations [Iterable[str]]: перечень ID организаций Dodo IS
             - unit_states [Iterable[str]]: перечень состояний заведений в Dodo IS
             - units [Iterable[str]]: список заведений (пиццерий) Dodo IS
@@ -98,9 +98,9 @@ class ApiUnits():
                     status_code=status_,
                     detail=data,
                 )
-            return_data.append(data["stores"])
+            return_data.extend(data["stores"])
             if data['isEndOfListReached'] or not take_all:
-                return data
+                return return_data
             else:
                 http_data['query_params']['skip'] += http_data['query_params']['take']
 
@@ -132,15 +132,15 @@ class ApiUnits():
             )
         return {
             'method': HttpMethods.GET,
-            'url': f'{self.__base_url}/sales',
+            'url': f'{self.__base_url}/stores',
             'query_params': {
                 k: v
                 for k, v
                 in {
                     'businessId': business_id,
                     'countryId': country_id,
-                    'organizations': ','.join(str(o) for o in organizations),
-                    'unitStates': ','.join(str(s) for s in unit_states),
+                    'organizations': ','.join(str(o) for o in organizations) if organizations else None,
+                    'unitStates': ','.join(str(s) for s in unit_states) if unit_states else None,
                     'skip': skip,
                     'take': take,
                     'units': ','.join(u for u in units),
@@ -160,7 +160,6 @@ class ApiUnits():
         DodoISScopes.validate_scopes(
             user_scopes=user_scopes,
             required_scopes={
-                DodoISScopes.STAFF_SHIFTS_READ,
-                DodoISScopes.USER_ROLE_READ,
+                DodoISScopes.SHARED,
             },
         )
