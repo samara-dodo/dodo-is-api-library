@@ -6,6 +6,7 @@ from typing import Callable
 
 from dodo_is_api_library.api_sections.core.subsections.accounting import ApiAccounting
 from dodo_is_api_library.api_sections.core.subsections.staff import ApiStaff
+from dodo_is_api_library.api_sections.core.subsections.units import ApiUnits
 
 
 class ApiCore():
@@ -25,6 +26,11 @@ class ApiCore():
             base_url=base_url,
         )
         self.staff = ApiStaff(
+            get_user_data=get_user_data,
+            raise_http_exception=raise_http_exception,
+            base_url=base_url,
+        )
+        self.units = ApiUnits(
             get_user_data=get_user_data,
             raise_http_exception=raise_http_exception,
             base_url=base_url,
