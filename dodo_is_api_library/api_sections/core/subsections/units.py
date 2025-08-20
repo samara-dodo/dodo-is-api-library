@@ -143,7 +143,7 @@ class ApiUnits():
                     'unitStates': ','.join(str(s) for s in unit_states) if unit_states else None,
                     'skip': skip,
                     'take': take,
-                    'units': ','.join(u for u in units),
+                    'units': ','.join(u for u in units) if units else None,
                 }.items()
                 if v is not None
             },
