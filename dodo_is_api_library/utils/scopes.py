@@ -6,15 +6,16 @@ class DodoISScopes:
     Класс представления DodoIS Scopes.
     """
 
-    FRANCHISEE_READ = 'franchisee:read'      # ID франшизы
-    OFFLINE_ACCESS = 'offline_access'        # токен обновления
-    OPENID = 'openid'                        # токен доступа
-    PHONE = 'phone'                          # номер телефона
-    PROFILE = 'profile'                      # профиль
-    SALES = 'sales'                          # продажи
-    SHARED = 'shared'                        # общие
-    STAFF_SHIFTS_READ = 'staffshifts:read'   # смены сотрудников / персонала, доступ на чтение
-    USER_ROLE_READ = 'user.role:read'        # роли и юниты пользователя, доступ на чтение
+    FRANCHISEE_READ = "franchisee:read"             # ID франшизы
+    OFFLINE_ACCESS = "offline_access"               # токен обновления
+    OPENID = "openid"                               # токен доступа
+    ORGANIZATIONSTRUCTURE = "organizationstructure" # оргструктура
+    PHONE = "phone"                                 # номер телефона
+    PROFILE = "profile"                             # профиль
+    SALES = "sales"                                 # продажи
+    SHARED = "shared"                               # общие
+    STAFF_SHIFTS_READ = "staffshifts:read"          # смены сотрудников / персонала, доступ на чтение
+    USER_ROLE_READ = "user.role:read"               # роли и юниты пользователя, доступ на чтение
 
     @staticmethod
     def validate_scopes(
