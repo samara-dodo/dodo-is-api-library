@@ -15,8 +15,6 @@ from dodo_is_api_library.utils.http_client import (
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
 
-client: HttpClient = HttpClient()
-
 
 class ApiUnits():
     """
@@ -79,7 +77,7 @@ class ApiUnits():
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__stores_get_validate_scopes(user_scopes=user_data['scopes'])
-        http_data: dict[str, Any] = self.__stores_get_http_params(
+        http_data: list[dict[str, Any]] = self.__stores_get_http_params(
             access_token=user_data['access_token'],
             business_id=business_id,
             country_id=country_id,
@@ -92,7 +90,7 @@ class ApiUnits():
         )
         return_data: list[dict[str, Any]] = []
         while 1:
-            status_, data, _ = await client.send_request(**http_data)
+            status_, data, _ = await HttpClient.send_request(**http_data)
             if status_ != HTTPStatus.OK:
                 self.__raise_http_exception(
                     status_code=status_,
@@ -115,7 +113,7 @@ class ApiUnits():
         skip: int = 0,
         take: int = 100,
         take_all: bool = False,
-    ) -> dict[str, Any]:
+    ) -> list[dict[str, Any]]:
         """
         Возвращает параметры HTTP запроса для stores_get.
         """
