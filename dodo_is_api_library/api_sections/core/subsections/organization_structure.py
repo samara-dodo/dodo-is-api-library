@@ -149,3 +149,63 @@ class ApiOrganizationStructure:
                 DodoISScopes.ORGANIZATIONSTRUCTURE,
             },
         )
+
+    # Список типов юрлиц
+
+    async def legal_entity_types_get(
+        self,
+        user_id: Any = None,
+        user_data: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Оргструктура → Список типов юрлиц
+
+        Возвращает список типов юрлиц (ООО, ИП, и т.д.), отсортированный по ID.
+
+        Документация: https://docs.dodois.io/docs/dodo-is/36cacbb8c35f3-orgstruktura-spisok-tipov-yurlicz
+        URL: https://api.dodois.io/dodopizza/ru/organization-structure/legal-entity-types
+
+        Требования к scopes:
+            - organizationstructure - оргструктура
+        """
+        if user_data is None:
+            user_data = await self.__get_user_data(user_id=user_id)
+        self.__legal_entity_types_get_validate_scopes(user_scopes=user_data['scopes'])
+        status_, data, _ = await HttpClient.send_request(
+            **self.__legal_entity_types_get_http_params(
+                access_token=user_data['access_token'],
+            ),
+        )
+        if status_ != HTTPStatus.OK:
+            self.__raise_http_exception(
+                status_code=status_,
+                detail=data,
+            )
+        return data["legalEntityTypes"]
+
+    def __legal_entity_types_get_http_params(
+        self,
+        access_token: str,
+    ) -> list[dict[str, Any]]:
+        """
+        Возвращает параметры HTTP запроса для legal_entity_types_get.
+        """
+        return {
+            'method': HttpMethods.GET,
+            'url': f'{self.__base_url}/legal-entity-types',
+            'headers': {'Authorization': f'Bearer {access_token}'},
+        }
+
+    def __legal_entity_types_get_validate_scopes(
+        self,
+        user_scopes: Iterable[str],
+    ) -> None:
+        """
+        Проверяет наличие обязательных scopes для метода legal_entity_types_get.
+        """
+        DodoISScopes.validate_scopes(
+            user_scopes=user_scopes,
+            required_scopes={
+                DodoISScopes.ORGANIZATIONSTRUCTURE,
+            },
+        )
