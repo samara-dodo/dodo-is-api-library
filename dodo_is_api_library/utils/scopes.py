@@ -6,6 +6,7 @@ class DodoISScopes:
     Класс представления DodoIS Scopes.
     """
 
+    DELIVERYSTATISTICS = "deliverystatistics"       # статистика доставки
     FRANCHISEE_READ = "franchisee:read"             # ID франшизы
     OFFLINE_ACCESS = "offline_access"               # токен обновления
     OPENID = "openid"                               # токен доступа
