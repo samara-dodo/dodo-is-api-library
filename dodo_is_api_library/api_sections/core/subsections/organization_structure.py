@@ -4,6 +4,10 @@
 
 from datetime import datetime
 from http import HTTPStatus
+from re import (
+    sub,
+    IGNORECASE,
+)
 from typing import (
     Any,
     Callable,
@@ -96,9 +100,26 @@ class ApiOrganizationStructure:
                 )
             return_data.extend(data["legalEntities"])
             if data['isEndOfListReached'] or not take_all:
-                return return_data
+                break
             else:
                 http_data['query_params']['skip'] += http_data['query_params']['take']
+        return self.__legal_entities_get_process_data(data=return_data)
+
+    def __legal_entities_get_process_data(
+        self,
+        data: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Обрабатывает полученные данные из API ответа для legal_entities_get.
+        """
+        for d in data:
+            # INFO. Могут быть лидирующие пробелы.
+            d["address"] = d["address"].strip()
+            # INFO. Могут быть лидирующие пробелы, дублирование типа предприятия, кавычки.
+            name: str = sub(pattern=r'[«»"“”]', repl="", string=d["name"])
+            name = sub(pattern=r'^(?:ООО|ОАО|ЗАО|ИП)\s+', repl="", string=name, flags=IGNORECASE)
+            d["name"] = name.strip()
+        return data
 
     def __legal_entities_get_http_params(
         self,
