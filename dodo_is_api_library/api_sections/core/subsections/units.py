@@ -14,7 +14,10 @@ from dodo_is_api_library.utils.http_client import (
     HttpMethods,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
-
+from dodo_is_api_library.utils.validators import (
+    process_full_address,
+    process_legal_entity_name,
+)
 
 class ApiUnits():
     """
@@ -77,7 +80,7 @@ class ApiUnits():
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__stores_get_validate_scopes(user_scopes=user_data['scopes'])
-        http_data: list[dict[str, Any]] = self.__stores_get_http_params(
+        http_data: dict[str, Any] = self.__stores_get_http_params(
             access_token=user_data['access_token'],
             business_id=business_id,
             country_id=country_id,
@@ -98,9 +101,19 @@ class ApiUnits():
                 )
             return_data.extend(data["stores"])
             if data['isEndOfListReached'] or not take_all:
-                return return_data
+                break
             else:
                 http_data['query_params']['skip'] += http_data['query_params']['take']
+        return self.__stores_get_process_data(data=return_data)
+
+    def __stores_get_process_data(
+        self,
+        data: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        for d in data:
+            d["organizationName"] = process_legal_entity_name(d["organizationName"])
+            d["location"]["fullAddress"] = process_full_address(d["location"]["fullAddress"])
+        return data
 
     def __stores_get_http_params(
         self,
@@ -113,7 +126,7 @@ class ApiUnits():
         skip: int = 0,
         take: int = 100,
         take_all: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> dict[str, Any]:
         """
         Возвращает параметры HTTP запроса для stores_get.
         """

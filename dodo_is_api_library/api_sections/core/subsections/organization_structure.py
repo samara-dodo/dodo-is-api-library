@@ -4,12 +4,9 @@
 
 from datetime import datetime
 from http import HTTPStatus
-from re import (
-    sub,
-    IGNORECASE,
-)
 from typing import (
     Any,
+    cast,
     Callable,
     Iterable,
 )
@@ -24,6 +21,10 @@ from dodo_is_api_library.utils.http_client import (
     HttpMethods,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
+from dodo_is_api_library.utils.validators import (
+    process_full_address,
+    process_legal_entity_name,
+)
 
 
 class ApiOrganizationStructure:
@@ -82,7 +83,7 @@ class ApiOrganizationStructure:
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__legal_entities_get_validate_scopes(user_scopes=user_data['scopes'])
-        http_data: list[dict[str, Any]] = self.__legal_entities_get_http_params(
+        http_data: dict[str, Any] = self.__legal_entities_get_http_params(
             access_token=user_data['access_token'],
             modified_at=modified_at,
             type_ids=type_ids,
@@ -113,12 +114,8 @@ class ApiOrganizationStructure:
         Обрабатывает полученные данные из API ответа для legal_entities_get.
         """
         for d in data:
-            # INFO. Могут быть лидирующие пробелы.
-            d["address"] = d["address"].strip()
-            # INFO. Могут быть лидирующие пробелы, дублирование типа предприятия, кавычки.
-            name: str = sub(pattern=r'[«»"“”]', repl="", string=d["name"])
-            name = sub(pattern=r'^(?:ООО|ОАО|ЗАО|ИП)\s+', repl="", string=name, flags=IGNORECASE)
-            d["name"] = name.strip()
+            d["address"] = process_full_address(d["address"])
+            d["name"] = process_legal_entity_name(d["name"])
         return data
 
     def __legal_entities_get_http_params(
@@ -129,7 +126,7 @@ class ApiOrganizationStructure:
         skip: int,
         take: int,
         take_all: bool,
-    ) -> list[dict[str, Any]]:
+    ) -> dict[str, Any]:
         """
         Возвращает параметры HTTP запроса для legal_entities_get.
         """
@@ -137,9 +134,9 @@ class ApiOrganizationStructure:
             skip = 0
             take = 1000
         if modified_at:
-            modified_at: str = convert_datetime_to_str(modified_at)
+            modified_at = convert_datetime_to_str(modified_at)
         if type_ids:
-            type_ids: list[str] = [convert_uuid_to_str(i) for i in type_ids]
+            type_ids = cast(list[str], [convert_uuid_to_str(i) for i in type_ids])
         return {
             'method': HttpMethods.GET,
             'url': f'{self.__base_url}/legal-entities',
@@ -207,7 +204,7 @@ class ApiOrganizationStructure:
     def __legal_entity_types_get_http_params(
         self,
         access_token: str,
-    ) -> list[dict[str, Any]]:
+    ) -> dict[str, Any]:
         """
         Возвращает параметры HTTP запроса для legal_entity_types_get.
         """
