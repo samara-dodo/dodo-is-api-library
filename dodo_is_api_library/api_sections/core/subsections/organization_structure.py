@@ -67,9 +67,9 @@ class ApiOrganizationStructure:
         пока не будет достигнут конец списка (isEndOfListReached = true).
 
         Аргументы:
-            - modified_at [str | datetime | None]: дата и время изменения в формате ISO 8601 (2011-08-01T18:31:42).
+            - modified_at [str | datetime]: дата и время изменения в формате ISO 8601 (2011-08-01T18:31:42).
                                                    Фильтр возвращает записи у которых дата изменения больше или равна переданной
-            - type_ids [list[str | UUID] | None]: список id (hex UUID) типов юрлиц
+            - type_ids [list[str | UUID]]: список id (hex UUID) типов юрлиц
             - skip [int]: количество записей, которые следует пропустить
             - take [int]: количество записей, которые следует выбрать
             - take_all [bool]: признак, что нужно получить все записи из API
