@@ -5,9 +5,18 @@ from datetime import (
 from uuid import UUID
 
 
+def convert_date_to_str(dt: str | datetime) -> str:
+    """
+    Конвертирует дату в строку формата YYYY-MM-DD.
+    """
+    if isinstance(dt, str):
+        return dt
+    return dt.strftime("%Y-%m-%d")
+
+
 def convert_datetime_to_str(dt: str | datetime) -> str:
     """
-    Конвертирует дату в строку формата YYYY-MM-DDTHH:MM:SS.
+    Конвертирует дату и время в строку формата YYYY-MM-DDTHH:MM:SS.
     """
     if isinstance(dt, str):
         return dt
