@@ -50,6 +50,7 @@ class ApiStaff():
         skip: int = 0,
         take: int = 100,
         user_id: Any = None,
+        user_data: dict[str, Any] | None = None,
     ) -> tuple[int, dict, dict]:
         """
         Команда → Смены сотрудников (по пиццериям)
