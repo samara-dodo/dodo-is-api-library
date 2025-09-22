@@ -126,8 +126,6 @@ class ApiOAuth:
         """
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id, user_ip=user_ip)
-        from pprint import pprint
-        pprint(user_data)
         status_, data, _ = await HttpClient.send_request(
             **self.__handle_auth_callback_http_params(code=code, user_data=user_data),
         )
@@ -140,7 +138,8 @@ class ApiOAuth:
             user_id=user_id,
             user_data={
                 "access_token": data["access_token"],
-                "refresh_token": data["refresh_token"],
+                # INFO. Запрос может не содержать scope на получение Refresh токена.
+                "refresh_token": data.get("refresh_token"),
             },
         )
         return data
