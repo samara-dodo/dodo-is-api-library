@@ -12,6 +12,7 @@ from typing import (
     Callable,
     Iterable,
 )
+from uuid import UUID
 
 from dodo_is_api_library.utils.http_client import (
     HttpClient,
@@ -270,7 +271,7 @@ class ApiUnits():
         country_id: str,
         organizations: Iterable[str] | None = None,
         unit_states: Iterable[str] | None = None,
-        units: list[str] | None = None,
+        units: list[str | UUID] | None = None,
         skip: int = 0,
         take: int = 100,
         take_all: bool = False,
@@ -302,7 +303,7 @@ class ApiUnits():
                     'unitStates': ','.join(str(s) for s in unit_states) if unit_states else None,
                     'skip': skip,
                     'take': take,
-                    'units': ','.join(u for u in units) if units else None,
+                    'units': ','.join(convert_uuid_to_str(u) for u in units) if units else None,
                 }.items()
                 if v is not None
             },
