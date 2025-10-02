@@ -4,10 +4,12 @@ from re import (
 )
 
 
-def process_legal_entity_name(value: str) -> str:
+def process_legal_entity_name(value: str | None) -> str | None:
     """
     Обрабатывает название юридического лица.
     """
+    if value is None:
+        return None
     # INFO. Могут быть лидирующие пробелы, дублирование типа предприятия, кавычки.
     value = value.strip()
     value = sub(pattern=r'[«»"“”]', repl="", string=value)
@@ -16,8 +18,10 @@ def process_legal_entity_name(value: str) -> str:
     return value.strip()
 
 
-def process_full_address(value: str) -> str:
+def process_full_address(value: str | None) -> str | None:
     """
     Обрабатывает адрес.
     """
+    if value is None:
+        return None
     return value.strip()
