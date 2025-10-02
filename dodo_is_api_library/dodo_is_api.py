@@ -28,7 +28,7 @@ class DodoISApi:
             Функция получения данных пользователя из сервиса
         update_user_data: Callable
             Функция обновления данных пользователя в сервисе
-        redirect_uri: str = 'https://localhost:5001/'
+        redirect_uri: str = 'https://localhost:5001'
             URI для перенаправления после успешной авторизации в DodoIS
     """
 
@@ -38,7 +38,7 @@ class DodoISApi:
         client_secret: str,
         get_user_data: Callable,
         update_user_data: Callable,
-        redirect_uri: str = 'https://localhost:5001/',
+        redirect_uri: str = 'https://localhost:5001',
         raise_http_exception: Callable = raise_http_exception,
     ):
         # Заполняются пользовательскими данными.
