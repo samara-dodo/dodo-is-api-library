@@ -47,6 +47,7 @@ class ApiOAuth:
         user_data: dict[str, Any] | None = None,
         user_id: int | str | None = None,
         user_ip: str | None = None,
+        override_redirect_uri: str | None = None,
     ) -> str:
         """
         Возвращает ссылку для авторизации в DodoIS.
@@ -57,10 +58,14 @@ class ApiOAuth:
             user_data [dict[str, Any] | None]: данные пользователя
             user_id [int | str | None]: уникальный идентификатор пользователя в приложении
             user_ip [str | None]: ip-адрес пользователя
+            override_redirect_uri [str]: ссылка для редиректа с DodoIS после успешной авторизации
 
         Если передан user_data, он обязательно должен иметь ключи:
             - scopes [Iterable[str]] - список scope-ов для доступа к DodoIS API
         Иначе - user_data будет получен из функции get_user_data.
+
+        Если передан override_redirect_uri - он будет использован вместо
+        redirect_uri, который был передан при инициализации класса DodoISApi.
 
         Ввиду того, что этот метод используется для авторизации указание ID
         пользователя в базе данных может быть невозможно. Для этого случая
@@ -88,7 +93,7 @@ class ApiOAuth:
             f"client_id={self.__client_id}&"
             f"scope={' '.join(user_data['scopes'])}&"
             f"response_type=code&"
-            f"redirect_uri={self.__redirect_uri}&"
+            f"redirect_uri={override_redirect_uri or self.__redirect_uri}&"
             f"code_challenge={code_challenge}&"
             f"code_challenge_method=S256"
         )
