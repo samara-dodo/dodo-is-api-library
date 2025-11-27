@@ -104,6 +104,7 @@ class ApiOAuth:
         user_data: dict[str, Any] | None = None,
         user_id: int | str | None = None,
         user_ip: str | None = None,
+        override_redirect_uri: str | None = None,
     ) -> dict[str, Any]:
         """
         Принимает код авторизации в DodoIS, обменивает его на Access и Refresh токены
@@ -115,11 +116,15 @@ class ApiOAuth:
             user_data [dict[str, Any] | None]: данные пользователя
             user_id [int | str | None]: уникальный идентификатор пользователя в приложении
             user_ip [str | None]: ip-адрес пользователя
+            override_redirect_uri [str]: ссылка для редиректа с DodoIS после успешной авторизации
 
         Если передан user_data, он обязательно должен иметь ключи:
             - code_verifier [str] - код подтверждения
             - scopes [Iterable[str]] - список scope-ов для доступа к DodoIS API
         Иначе - user_data будет получен из функции get_user_data.
+
+        Если передан override_redirect_uri - он будет использован вместо
+        redirect_uri, который был передан при инициализации класса DodoISApi.
 
         Ввиду того, что этот метод используется для авторизации указание ID
         пользователя в базе данных может быть невозможно. Для этого случая
@@ -132,7 +137,11 @@ class ApiOAuth:
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id, user_ip=user_ip)
         status_, data, _ = await HttpClient.send_request(
-            **self.__handle_auth_callback_http_params(code=code, user_data=user_data),
+            **self.__handle_auth_callback_http_params(
+                code=code,
+                user_data=user_data,
+                override_redirect_uri=override_redirect_uri,
+            ),
         )
         if status_ != HTTPStatus.OK:
             self.__raise_http_exception(
@@ -153,6 +162,7 @@ class ApiOAuth:
         self,
         code: str,
         user_data: dict[str, Any],
+        override_redirect_uri: str | None = None,
     ) -> dict[str, Any]:
         """Возвращает параметры HTTP запроса для refresh_token_pair_post."""
         return {
@@ -165,7 +175,7 @@ class ApiOAuth:
                 "code": code,
                 "code_verifier": user_data["code_verifier"],
                 "scope": " ".join(user_data["scopes"]),
-                "redirect_uri": self.__redirect_uri,
+                "redirect_uri": override_redirect_uri or self.__redirect_uri,
             },
             "headers": {"Content-Type": HttpContentType.APPLICATION_X_WWW_FORM_URLENCODED},
         }
