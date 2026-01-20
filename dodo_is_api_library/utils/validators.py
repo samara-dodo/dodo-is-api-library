@@ -1,5 +1,6 @@
 from re import (
-    sub,
+    compile as re_compile,
+    sub as re_sub,
     IGNORECASE,
 )
 from typing import Iterable
@@ -68,8 +69,8 @@ def process_legal_entity_name(value: str | None) -> str | None:
         return None
     # INFO. Могут быть лидирующие пробелы, дублирование типа предприятия, кавычки.
     value = value.strip()
-    value = sub(pattern=r'[«»"“”]', repl="", string=value)
-    value = sub(pattern=r'^(?:ООО|ОАО|ЗАО|ИП)\s+', repl="", string=value, flags=IGNORECASE)
+    value = re_sub(pattern=r'[«»"“”]', repl="", string=value)
+    value = re_sub(pattern=r'^(?:ООО|ОАО|ЗАО|ИП)\s+', repl="", string=value, flags=IGNORECASE)
     # INFO. Дополнительный strip, если внутри кавычек были множественные пробелы.
     return value.strip()
 
@@ -81,3 +82,19 @@ def process_full_address(value: str | None) -> str | None:
     if value is None:
         return None
     return value.strip()
+
+
+def process_tin(value: str | None) -> str | None:
+    """
+    Производит валидацию идентификатора налогоплатильщика
+    (Taxpayer Identification Number: TIN).
+
+    Нормализация данных универсальная:
+        - РФ (ИНН) → цифры
+        - ЕС (VAT) -> цифры и буквы
+        - США (SSN/ITIN) -> цифры
+        - прочие страны -> цифры и/или буквы
+    """
+    if not value:
+        return None
+    return re_compile(r"[^A-Za-z0-9]").sub("", value).upper() or None
