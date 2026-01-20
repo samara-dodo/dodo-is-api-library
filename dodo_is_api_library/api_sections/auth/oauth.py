@@ -17,6 +17,7 @@ from dodo_is_api_library.utils.http_client import (
     HttpContentType,
     HttpMethods,
 )
+from dodo_is_api_library.utils.validators import validate_phone_number
 
 
 class ApiOAuth:
@@ -264,6 +265,14 @@ class ApiOAuth:
                 status_code=status_,
                 detail=data,
             )
+        return self.__user_profile_get_process_data(data=data)
+
+    def __user_profile_get_process_data(
+        self,
+        *,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        data["phone_number"] = validate_phone_number(data.get("phone_number"))
         return data
 
     def __user_profile_get_http_params(
