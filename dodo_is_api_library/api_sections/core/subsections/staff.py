@@ -20,6 +20,7 @@ from dodo_is_api_library.utils.http_client import (
     HttpMethods,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
+from dodo_is_api_library.utils.validators import process_tin
 
 client: HttpClient = HttpClient()
 
@@ -250,6 +251,10 @@ class ApiStaff():
         """
         Обрабатывает полученные данные из API ответа для members_get.
         """
+        for i in data:
+            i["taxpayerIdentificationNumber"] = process_tin(
+                value=i["taxpayerIdentificationNumber"],
+            )
         return data
 
     def __members_get_http_params(
