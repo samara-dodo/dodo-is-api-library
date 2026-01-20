@@ -84,6 +84,15 @@ def process_full_address(value: str | None) -> str | None:
     return value.strip()
 
 
+def validate_phone_number(value: str | None) -> str | None:
+    """
+    Производит валидацию номера телефона.
+    """
+    if not value:
+        return None
+    return re_sub(r"\D", "", value).strip() or None
+
+
 def process_tin(value: str | None) -> str | None:
     """
     Производит валидацию идентификатора налогоплатильщика
