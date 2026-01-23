@@ -5,6 +5,7 @@
 from typing import Callable
 
 from dodo_is_api_library.api_sections.core.subsections.accounting import ApiAccounting
+from dodo_is_api_library.api_sections.core.subsections.delivery import ApiDelivery
 from dodo_is_api_library.api_sections.core.subsections.organization_structure import ApiOrganizationStructure
 from dodo_is_api_library.api_sections.core.subsections.staff import ApiStaff
 from dodo_is_api_library.api_sections.core.subsections.units import ApiUnits
@@ -22,6 +23,11 @@ class ApiCore():
         base_url: str,
     ):
         self.accounting = ApiAccounting(
+            get_user_data=get_user_data,
+            raise_http_exception=raise_http_exception,
+            base_url=base_url,
+        )
+        self.delivery = ApiDelivery(
             get_user_data=get_user_data,
             raise_http_exception=raise_http_exception,
             base_url=base_url,
