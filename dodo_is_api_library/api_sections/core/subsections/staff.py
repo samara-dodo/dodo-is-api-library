@@ -14,7 +14,10 @@ from typing import (
 )
 from uuid import UUID
 
-from dodo_is_api_library.utils.converter import convert_date_to_str
+from dodo_is_api_library.utils.converter import (
+    convert_date_to_str,
+    convert_datetime_to_str,
+)
 from dodo_is_api_library.utils.http_client import (
     HttpClient,
     HttpMethods,
@@ -39,6 +42,103 @@ class ApiStaff():
         self.__get_user_data: Callable = get_user_data
         self.__raise_http_exception: Callable = raise_http_exception
         self.__base_url: str = f'{base_url}/staff'
+
+    # Курьеры на смене
+
+    async def couriers_on_shift_get(
+        self,
+        units: list[str | UUID],
+        target_datetime: str | datetime | None = None,
+        user_id: Any = None,
+        user_data: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Команда → Курьеры на смене
+
+        Возвращает список курьеров на смене на указанный или текущий момент.
+
+        Документация: https://docs.dodois.io/docs/dodo-is/b7e33db9e95d9-komanda-kurery-na-smene
+        URL: https://api.dodois.io/dodopizza/ru/staff/couriers-on-shift
+
+        Аргументы:
+            - units [Iterable[str | UUID]]: список заведений (пиццерий) Dodo IS в формате UUID
+            - target_datetime [str | datetime | None]: дата и время для просмотра списка курьеров в заданный момент. Если оставить параметр пустым, вернется информация на текущий момент
+
+        Требования к аргументам:
+            - в units можно перечислить до 30 заведений в одном запросе
+            - дата и время target_datetime должны быть в прошлом
+
+        Доступно для следующих ролей:
+            - division administrator - администратор подразделения
+            - store manager - менеджер офиса
+            - shift supervisor - менеджер смены
+
+        Требования к scopes:
+            - staffshifts:read - смены сотрудников / персонала, доступ на чтение
+            - user.role:read - роли и юниты пользователя
+        """
+        if user_data is None:
+            user_data = await self.__get_user_data(user_id=user_id)
+        self._couriers_on_shift_get_validate_scopes(user_scopes=user_data['scopes'])
+        http_data: dict[str, Any] = self._couriers_on_shift_get_http_params(
+            access_token=user_data['access_token'],
+            units=units,
+            target_datetime=target_datetime,
+        )
+        status_, data, _ = await HttpClient.send_request(**http_data)
+        if status_ != HTTPStatus.OK:
+            self.__raise_http_exception(
+                status_code=status_,
+                detail=data,
+            )
+        return self._couriers_on_shift_get_process_data(data=data["couriers"])
+
+    def _couriers_on_shift_get_process_data(
+        self,
+        data: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Обрабатывает полученные данные из API ответа для couriers_on_shift_get.
+        """
+        return data
+
+    def _couriers_on_shift_get_http_params(
+        self,
+        access_token: str,
+        units: list[str | UUID],
+        target_datetime: str | datetime | None = None,
+    ) -> dict[str, Any]:
+        if isinstance(target_datetime, datetime):
+            target_datetime = convert_datetime_to_str(target_datetime)
+        return {
+            'method': HttpMethods.GET,
+            'url': f'{self.__base_url}/couriers-on-shift',
+            "query_params": {
+                k: v
+                for k, v
+                in {
+                    "units": ",".join(str(u).replace("-", "") for u in units),
+                    "on": target_datetime,
+                }.items()
+                if v is not None
+            },
+            "headers": {"Authorization": f"Bearer {access_token}"},
+        }
+
+    def _couriers_on_shift_get_validate_scopes(
+        self,
+        user_scopes: Iterable[str],
+    ):
+        """
+        Проверяет наличие обязательных scopes для метода couriers_on_shift_get.
+        """
+        DodoISScopes.validate_scopes(
+            user_scopes=user_scopes,
+            required_scopes={
+                DodoISScopes.STAFF_SHIFTS_READ,
+                DodoISScopes.USER_ROLE_READ,
+            },
+        )
 
     # Смены сотрудников (по пиццериям)
 
@@ -171,7 +271,7 @@ class ApiStaff():
         take_all: bool = False,
         user_id: Any = None,
         user_data: dict[str, Any] | None = None,
-    ):
+    ) -> list[dict[str, Any]]:
         """
         Команда → Список сотрудников
 
@@ -327,8 +427,6 @@ class ApiStaff():
             },
             'headers': {'Authorization': f'Bearer {access_token}'},
         }
-
-
 
     def __members_get_validate_scopes(
         self,
