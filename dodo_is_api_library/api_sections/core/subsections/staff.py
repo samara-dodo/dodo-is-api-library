@@ -150,9 +150,10 @@ class ApiStaff():
         staff_type: str | None = None,
         skip: int = 0,
         take: int = 100,
+        take_all: bool = False,
         user_id: Any = None,
         user_data: dict[str, Any] | None = None,
-    ) -> tuple[int, dict, dict]:
+    ) -> list[dict[str, Any]]:
         """
         Команда → Смены сотрудников (по пиццериям)
 
@@ -177,10 +178,12 @@ class ApiStaff():
             - staff_type [str]: фильтр по типу сотрудника
             - skip [int]: количество записей, которые следует пропустить
             - take [int]: количество записей, которые следует выбрать
+            - take_all [bool]: признак, что нужно получить все записи из API
 
         Требования к аргументам:
             - в units можно перечислить до 30 заведений в одном запросе
             - from должен быть меньше, чем to
+            - если take_all=True, то take будет проигнорирован
 
         Доступно для следующих ролей:
             - division administrator - администратор подразделения
@@ -190,17 +193,36 @@ class ApiStaff():
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__shifts_get_validate_scopes(user_scopes=user_data['scopes'])
-        return await client.send_request(
-            **self.__shifts_get_http_params(
-                access_token=user_data['access_token'],
-                clock_in_from=clock_in_from,
-                clock_in_to=clock_in_to,
-                units=units,
-                staff_type=staff_type,
-                skip=skip,
-                take=take,
-            ),
+        http_data: dict[str, Any] = self.__shifts_get_http_params(
+            access_token=user_data['access_token'],
+            clock_in_from=clock_in_from,
+            clock_in_to=clock_in_to,
+            units=units,
+            staff_type=staff_type,
+            skip=skip,
+            take=take,
         )
+        return_data: list[dict[str, Any]] = []
+        while 1:
+            status_, data, _ = await HttpClient.send_request(**http_data)
+            if status_ != HTTPStatus.OK:
+                self.__raise_http_exception(
+                    status_code=status_,
+                    detail=data,
+                )
+            return_data.extend(data["shifts"])
+            if data['isEndOfListReached'] or not take_all:
+                break
+            else:
+                http_data['query_params']['skip'] += http_data['query_params']['take']
+        return self.__shifts_get_process_data(data=return_data)
+
+    def __shifts_get_process_data(
+        self,
+        *,
+        data: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        return data
 
     def __shifts_get_http_params(
         self,
@@ -301,6 +323,7 @@ class ApiStaff():
             - staff_type должен быть одним из следующих значений: "Operator", "KitchenMember", "Courier", "Cashier", "PersonalManager"
             - statuses должен включать следующие значения: "Dismissed" - уволен, "Suspended" - отстранен, "Active" - работает
             - фильтр take должен быть больше 0 и меньше либо равен 1000
+            - если take_all=True, то take будет проигнорирован
 
         Доступно для следующих ролей:
             - division administrator - администратор подразделения
@@ -452,9 +475,10 @@ class ApiStaff():
         staff_ids: list[str | UUID],
         skip: int = 0,
         take: int = 100,
+        take_all: bool = False,
         user_id: Any = None,
         user_data: dict[str, Any] | None = None,
-    ):
+    ) -> list[dict[str, Any]]:
         """
         Команда → Смены сотрудников (по идентификаторам)
 
@@ -478,9 +502,11 @@ class ApiStaff():
             - staff_ids [Iterable[str | UUID]]: идентификаторы сотрудников в формате UUID
             - skip [int]: количество записей, которые следует пропустить
             - take [int]: количество записей, которые следует выбрать
+            - take_all [bool]: признак, что нужно получить все записи из API
 
         Требования к аргументам:
             - В staff_ids можно перечислить до 30 сотрудников в одном запросе
+            - если take_all=True, то take будет проигнорирован
 
         Доступно для следующих ролей:
             - division administrator - администратор подразделения
@@ -490,16 +516,36 @@ class ApiStaff():
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__members_shifts_get_validate_scopes(user_scopes=user_data['scopes'])
-        return await client.send_request(
-            **self.__members_shifts_get_http_params(
-                access_token=user_data['access_token'],
-                clock_in_from=clock_in_from,
-                clock_in_to=clock_in_to,
-                staff_ids=staff_ids,
-                skip=skip,
-                take=take,
-            ),
+        http_data: dict[str, Any] = self.__members_shifts_get_http_params(
+            access_token=user_data['access_token'],
+            clock_in_from=clock_in_from,
+            clock_in_to=clock_in_to,
+            staff_ids=staff_ids,
+            skip=skip,
+            take=take,
+            take_all=take_all,
         )
+        return_data: list[dict[str, Any]] = []
+        while 1:
+            status_, data, _ = await HttpClient.send_request(**http_data)
+            if status_ != HTTPStatus.OK:
+                self.__raise_http_exception(
+                    status_code=status_,
+                    detail=data,
+                )
+            return_data.extend(data["shifts"])
+            if data['isEndOfListReached'] or not take_all:
+                break
+            else:
+                http_data['query_params']['skip'] += http_data['query_params']['take']
+        return self.__members_shifts_get_process_data(data=return_data)
+
+    def __members_shifts_get_process_data(
+        self,
+        *,
+        data: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        return data
 
     def __members_shifts_get_http_params(
         self,
@@ -509,6 +555,7 @@ class ApiStaff():
         staff_ids: list[str | UUID],
         skip: int,
         take: int,
+        take_all: bool,
     ) -> dict[str, Any]:
         """
         Возвращает аргументы для методов members_shifts_get.
@@ -530,8 +577,8 @@ class ApiStaff():
                     'staff_ids': ','.join(
                         str(s_id).replace("-", "") for s_id in staff_ids
                     ) if staff_ids else None,
-                    'skip': skip,
-                    'take': take,
+                    'skip': 0 if take_all else skip,
+                    'take': 100 if take_all else take,
                 }.items()
                 if v is not None
             },
