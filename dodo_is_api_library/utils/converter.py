@@ -1,11 +1,12 @@
 from datetime import (
+    date,
     datetime,
     timezone,
 )
 from uuid import UUID
 
 
-def convert_date_to_str(dt: str | datetime) -> str:
+def convert_date_to_str(dt: str | date) -> str:
     """
     Конвертирует дату в строку формата YYYY-MM-DD.
     """
