@@ -45,7 +45,7 @@ class ApiDelivery():
         self,
         dt_from: str | datetime,
         dt_to: str | datetime,
-        units: list[str | UUID],
+        units: Iterable[str | UUID],
         skip: int = 0,
         take: int = 1000,
         take_all: bool = False,

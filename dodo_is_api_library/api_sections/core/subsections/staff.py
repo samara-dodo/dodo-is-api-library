@@ -47,7 +47,7 @@ class ApiStaff():
 
     async def couriers_on_shift_get(
         self,
-        units: list[str | UUID],
+        units: Iterable[str | UUID],
         target_datetime: str | datetime | None = None,
         user_id: Any = None,
         user_data: dict[str, Any] | None = None,
@@ -105,7 +105,7 @@ class ApiStaff():
     def _couriers_on_shift_get_http_params(
         self,
         access_token: str,
-        units: list[str | UUID],
+        units: Iterable[str | UUID],
         target_datetime: str | datetime | None = None,
     ) -> dict[str, Any]:
         if isinstance(target_datetime, datetime):
@@ -146,7 +146,7 @@ class ApiStaff():
         self,
         clock_in_from: str | datetime,
         clock_in_to: str | date,
-        units: list[str | UUID],
+        units: Iterable[str | UUID],
         staff_type: str | None = None,
         skip: int = 0,
         take: int = 100,
@@ -229,7 +229,7 @@ class ApiStaff():
         access_token: str,
         clock_in_from: str | datetime,
         clock_in_to: str | date,
-        units: list[str | UUID],
+        units: Iterable[str | UUID],
         staff_type: str | None,
         skip: int,
         take: int,
