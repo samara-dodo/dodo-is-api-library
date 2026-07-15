@@ -17,6 +17,7 @@ from uuid import UUID
 from dodo_is_api_library.utils.converter import (
     convert_date_to_str,
     convert_datetime_to_str,
+    convert_uuids_to_str,
 )
 from dodo_is_api_library.utils.http_client import (
     HttpClient,
@@ -466,6 +467,148 @@ class ApiStaff():
             },
         )
 
+    async def members_search_get(
+        self,
+        date_of_birth: str | date | None = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        patronymic_name: str | None = None,
+        phone_number: str | None = None,
+        taxpayer_identification_number: str | None = None,
+        user_id: Any = None,
+        user_data: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Команда → Поиск сотрудников
+
+        Возвращает список сотрудников с данными о трудоустройстве.
+        Для поиска используется алгоритм, который описан ниже,
+        а результирующие персональные данные скрываются.
+
+        Документация: https://docs.dodois.io/docs/dodo-is/726d2fd7e4b16-komanda-poisk-sotrudnikov
+        URL: https://api.dodois.io/dodopizza/ru/staff/members/search
+
+        ВАЖНО! Номер телефона нужно начинать с "+" символа.
+
+        ВАЖНО! Алгоритм рассматривает только указанные ниже группы совпадений!
+        В результирующий список попадут все найденные записи,
+        удовлетворяющие нижеперечисленным группам совпадения:
+            - 6 совпадений:
+                - Фамилия - Имя - Отчество - Номер телефона - Дата Рождения - ИНН
+            - 5 совпадений:
+                - Фамилия - Имя - Номер телефона - Дата Рождения - ИНН
+            - 4 совпадения:
+                - Фамилия - Имя - Номер телефона - Дата Рождения
+            - 3 совпадения:
+                - Фамилия - Имя - Номер телефона
+                - Фамилия - Имя - Дата Рождения
+                - Фамилия - Имя - ИНН
+            - 2 совпадения:
+                - Фамилия - Имя
+                - Фамилия - Номер телефона
+                - Фамилия - Дата рождения
+                - Фамилия - ИНН
+            - 1 совпадение:
+                - Номер телефона
+                - ИНН
+
+            Аргументы:
+            - date_of_birth [str | date | None]: дата рождения
+            - first_name [str | None]: имя
+            - last_name [str | None]: фамилия
+            - patronymic_name [str | None]: отчество
+            - phone_number [str | None]: номер телефона
+            - taxpayer_identification_number [str | None]: ИНН
+
+        Требования к аргументам:
+            - Если входные параметры поиска не попадают ни в одну
+              из указанных групп, то вернется пустой результат
+            - Все совпадения, обнаруженные по указанным выше группам,
+              будут включены в общий результат
+
+        Доступно для следующих ролей:
+            - division administrator - администратор подразделения
+            - store manager - менеджер офиса
+            - shift supervisor - менеджер смены
+        """
+        if user_data is None:
+            user_data = await self.__get_user_data(user_id=user_id)
+        self.__members_search_get_validate_scopes(user_scopes=user_data['scopes'])
+        http_data: dict[str, Any] = self.__members_search_get_http_params(
+            access_token=user_data['access_token'],
+            date_of_birth=date_of_birth,
+            first_name=first_name,
+            last_name=last_name,
+            patronymic_name=patronymic_name,
+            phone_number=phone_number,
+            taxpayer_identification_number=taxpayer_identification_number,
+        )
+        status_, data, _ = await HttpClient.send_request(**http_data)
+        if status_ != HTTPStatus.OK:
+            self.__raise_http_exception(
+                status_code=status_,
+                detail=data,
+            )
+        return self._members_search_get_process_data(data=data["staffMatches"])
+
+    def _members_search_get_process_data(
+        self,
+        data: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Обрабатывает полученные данные из API ответа для members_search_get.
+        """
+        return data
+
+    def __members_search_get_http_params(
+        self,
+        access_token: str,
+        date_of_birth: str | date | None,
+        first_name: str | None,
+        last_name: str | None,
+        patronymic_name: str | None,
+        phone_number: str | None,
+        taxpayer_identification_number: str | None,
+    ) -> dict[str, Any]:
+        """
+        Возвращает параметры для http-запроса к API.
+        """
+        if isinstance(date_of_birth, date):
+            date_of_birth = convert_date_to_str(date_of_birth)
+        return {
+            'method': HttpMethods.GET,
+            'url': f'{self.__base_url}/members/search',
+            "query_params": {
+                k: v
+                for k, v
+                in {
+                    "dateOfBirth": date_of_birth,
+                    "firstName": first_name,
+                    "lastName": last_name,
+                    "patronymicName": patronymic_name,
+                    "phoneNumber": phone_number,
+                    "taxpayerIdentificationNumber": taxpayer_identification_number,
+                }.items()
+                if v is not None
+            },
+            "headers": {"Authorization": f"Bearer {access_token}"},
+        }
+
+    def __members_search_get_validate_scopes(
+        self,
+        user_scopes: Iterable[str],
+    ) -> None:
+        """
+        Проверяет наличие обязательных scopes для метода members_search_get.
+        """
+        DodoISScopes.validate_scopes(
+            user_scopes=user_scopes,
+            required_scopes={
+                DodoISScopes.STAFF_MEMBERS_SEARCH,
+                DodoISScopes.USER_ROLE_READ,
+            },
+        )
+
     # Смены сотрудников (по идентификаторам)
 
     async def members_shifts_get(
@@ -597,5 +740,135 @@ class ApiStaff():
             required_scopes={
                 DodoISScopes.STAFF_SHIFTS_READ,
                 DodoISScopes.USER_ROLE_READ,
+            },
+        )
+
+    async def positions_history_get(
+        self,
+        staff_members: Iterable[str | UUID] | None = None,
+        units: Iterable[str | UUID] | None = None,
+        skip: int = 0,
+        take: int = 100,
+        take_all: bool = False,
+        user_id: Any = None,
+        user_data: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Команда → История должностей сотрудников
+
+        Документация: https://docs.dodois.io/docs/dodo-is/bf21a90d9c1f9-komanda-istoriya-dolzhnostej-sotrudnikov
+        URL: https://api.dodois.io/dodopizza/ru/staff/positions/history
+
+        Аргументы:
+            - staff_members [Iterable[str | UUID]]: список сотрудников Dodo IS в формате UUID
+            - units [Iterable[str | UUID]]: список заведений (пиццерий) Dodo IS в формате UUID
+            - skip [int]: количество записей, которые следует пропустить
+            - take [int]: количество записей, которые следует выбрать
+            - take_all [bool]: признак, что нужно получить все записи из API
+
+        Требования к аргументам:
+            - в units можно перечислить до 5 заведений в одном запросе
+            - в units следует перечислять UUID-ы строго через запятую без пробелов;
+            - в staffMembers можно перечислить до 30 сотрудников в одном запросе;
+            - в staffMembers следует перечислять UUID-ы строго через запятую без пробелов;
+            - в запросе необходимо передать один из параметров: units или staffMembers
+            - если take_all=True, то take будет проигнорирован
+
+        Доступно для следующих ролей:
+            - division administrator - администратор подразделения
+            - employee - сотрудник. Получение данных только о самом себе
+            - store manager - менеджер офиса
+            - shift supervisor - менеджер смены
+        """
+        if user_data is None:
+            user_data = await self.__get_user_data(user_id=user_id)
+        self.__positions_history_get_validate_scopes(user_scopes=user_data['scopes'])
+        http_data: dict[str, Any] = self.__positions_history_get_http_params(
+            access_token=user_data['access_token'],
+            staff_members=staff_members,
+            units=units,
+            skip=skip,
+            take=take,
+        )
+        return_data: list[dict[str, Any]] = []
+        while 1:
+            status_, data, _ = await HttpClient.send_request(**http_data)
+            if status_ != HTTPStatus.OK:
+                self.__raise_http_exception(
+                    status_code=status_,
+                    detail=data,
+                )
+            return_data.extend(data["history"])
+            # TODO. Сделать проверку по наполнению везде.
+            if (
+                not data["history"]
+                or len(data["history"]) < http_data['query_params']['take']
+                or data['isEndOfListReached']
+                or not take_all
+            ):
+                break
+            else:
+                http_data['query_params']['skip'] += http_data['query_params']['take']
+        return self.__positions_history_get_process_data(data=return_data)
+
+    def __positions_history_get_process_data(
+        self,
+        *,
+        data: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """
+        Обрабатывает полученные данные из API ответа для positions_history_get.
+        """
+        return data
+
+    def __positions_history_get_http_params(
+        self,
+        access_token: str,
+        staff_members: Iterable[str | UUID] | None,
+        units: Iterable[str | UUID] | None,
+        skip: int,
+        take: int,
+    ) -> dict[str, Any]:
+        """
+        Возвращает параметры HTTP запроса для positions_history_get.
+        """
+        units_str: str | None = (
+            convert_uuids_to_str(uuids=units)
+            if units
+            else None
+        )
+        staff_members_str: str | None = (
+            convert_uuids_to_str(uuids=staff_members)
+            if staff_members
+            else None
+        )
+        return {
+            'method': HttpMethods.GET,
+            'url': f'{self.__base_url}/positions/history',
+            'query_params': {
+                k: v
+                for k, v
+                in {
+                    'staffMembers': staff_members_str,
+                    'units': units_str,
+                    'skip': skip,
+                    'take': take,
+                }.items()
+                if v is not None
+            },
+            'headers': {'Authorization': f'Bearer {access_token}'},
+        }
+
+    def __positions_history_get_validate_scopes(
+        self,
+        user_scopes: Iterable[str],
+    ) -> None:
+        """
+        Проверяет наличие обязательных scopes для метода positions_history_get.
+        """
+        DodoISScopes.validate_scopes(
+            user_scopes=user_scopes,
+            required_scopes={
+                DodoISScopes.SHARED,
             },
         )
