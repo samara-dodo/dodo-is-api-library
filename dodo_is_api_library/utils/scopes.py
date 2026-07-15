@@ -15,6 +15,7 @@ class DodoISScopes:
     PROFILE = "profile"                             # профиль
     SALES = "sales"                                 # продажи
     SHARED = "shared"                               # общие
+    STAFF_MEMBERS_SEARCH = "staffmembersearch"    # поиск сотрудников
     STAFF_MEMBERS_READ = "staffmembers:read"        # сотрудники / персонал, доступ на чтение (содержит персональные данные)
     STAFF_SHIFTS_READ = "staffshifts:read"          # смены сотрудников / персонала, доступ на чтение
     UNIT_READ = "unit:read"                         # заведения, доступ на чтение
