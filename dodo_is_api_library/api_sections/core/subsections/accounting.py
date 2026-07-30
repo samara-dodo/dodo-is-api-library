@@ -14,12 +14,11 @@ from typing import (
 from uuid import UUID
 
 from dodo_is_api_library.utils.http_client import (
-    HttpClient,
     HttpMethods,
+    HttpResponseDTO,
+    http_client,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
-
-client: HttpClient = HttpClient()
 
 
 class ApiAccounting():
@@ -90,7 +89,7 @@ class ApiAccounting():
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__sales_get_validate_scopes(user_scopes=user_data['scopes'])
-        status_, data, _ = await client.send_request(
+        response: HttpResponseDTO = await http_client.send_request(
             **self.__sales_get_http_params(
                 access_token=user_data['access_token'],
                 period_from=period_from,
@@ -102,12 +101,12 @@ class ApiAccounting():
                 take=take,
             ),
         )
-        if status_ != HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
-        return data
+        return response.data
 
 
     def __sales_get_http_params(

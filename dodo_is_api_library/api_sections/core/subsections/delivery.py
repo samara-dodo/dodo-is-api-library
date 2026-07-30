@@ -14,8 +14,9 @@ from http import HTTPStatus
 
 from dodo_is_api_library.utils.converter import convert_datetime_to_str
 from dodo_is_api_library.utils.http_client import (
-    HttpClient,
     HttpMethods,
+    HttpResponseDTO,
+    http_client,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
 
@@ -99,14 +100,14 @@ class ApiDelivery():
         )
         return_data: list[dict[str, Any]] = []
         while 1:
-            status_, data, _ = await HttpClient.send_request(**http_data)
-            if status_ != HTTPStatus.OK:
+            response: HttpResponseDTO = await http_client.send_request(**http_data)
+            if response.status_code != HTTPStatus.OK:
                 self.__raise_http_exception(
-                    status_code=status_,
-                    detail=data,
+                    status_code=response.status_code,
+                    detail=response.data,
                 )
-            return_data.extend(data["couriersOrders"])
-            if data['isEndOfListReached'] or not take_all:
+            return_data.extend(response.data["couriersOrders"])
+            if response.data['isEndOfListReached'] or not take_all:
                 break
             else:
                 http_data['query_params']['skip'] += http_data['query_params']['take']

@@ -9,12 +9,11 @@ from typing import (
 )
 
 from dodo_is_api_library.utils.http_client import (
-    HttpClient,
     HttpMethods,
+    HttpResponseDTO,
+    http_client,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
-
-client: HttpClient = HttpClient()
 
 
 class ApiFranchisee:
@@ -54,15 +53,15 @@ class ApiFranchisee:
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__units_get_validate_scopes(user_data=user_data)
-        status_, data, _ = await HttpClient.send_request(
+        response: HttpResponseDTO = await http_client.send_request(
             **self.__units_get_http_params(user_data=user_data),
         )
-        if status_ != HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
-        return data
+        return response.data
 
     def __units_get_http_params(
         self,

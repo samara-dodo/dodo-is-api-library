@@ -8,10 +8,10 @@ from typing import (
     Callable,
 )
 
-from dodo_is_api_library.utils.http_client import HttpMethods
 from dodo_is_api_library.utils.http_client import (
-    HttpClient,
     HttpMethods,
+    HttpResponseDTO,
+    http_client,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
 
@@ -51,15 +51,15 @@ class ApiAuth:
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__roles_list_get_validate_scopes(user_data=user_data)
-        status_, data, _ = await HttpClient.send_request(
+        response: HttpResponseDTO = await http_client.send_request(
             **self.__roles_list_get_http_params(user_data=user_data),
         )
-        if status_ != HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
-        return data
+        return response.data
 
     def __roles_list_get_http_params(
         self,
@@ -105,15 +105,15 @@ class ApiAuth:
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__roles_units_get_validate_scopes(user_data=user_data)
-        status_, data, _ = await HttpClient.send_request(
+        response: HttpResponseDTO = await http_client.send_request(
             **self.__roles_units_get_http_params(user_data=user_data),
         )
-        if status_ != HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
-        return data
+        return response.data
 
     def __roles_units_get_http_params(
         self,

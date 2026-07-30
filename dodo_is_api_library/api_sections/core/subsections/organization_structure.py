@@ -17,8 +17,9 @@ from dodo_is_api_library.utils.converter import (
     convert_uuid_to_str,
 )
 from dodo_is_api_library.utils.http_client import (
-    HttpClient,
     HttpMethods,
+    HttpResponseDTO,
+    http_client,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
 from dodo_is_api_library.utils.validators import (
@@ -93,14 +94,14 @@ class ApiOrganizationStructure:
         )
         return_data: list[dict[str, Any]] = []
         while 1:
-            status_, data, _ = await HttpClient.send_request(**http_data)
-            if status_ != HTTPStatus.OK:
+            response: HttpResponseDTO = await http_client.send_request(**http_data)
+            if response.status_code != HTTPStatus.OK:
                 self.__raise_http_exception(
-                    status_code=status_,
-                    detail=data,
+                    status_code=response.status_code,
+                    detail=response.data,
                 )
-            return_data.extend(data["legalEntities"])
-            if data['isEndOfListReached'] or not take_all:
+            return_data.extend(response.data["legalEntities"])
+            if response.data['isEndOfListReached'] or not take_all:
                 break
             else:
                 http_data['query_params']['skip'] += http_data['query_params']['take']
@@ -189,17 +190,17 @@ class ApiOrganizationStructure:
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__legal_entity_types_get_validate_scopes(user_scopes=user_data['scopes'])
-        status_, data, _ = await HttpClient.send_request(
+        response: HttpResponseDTO = await http_client.send_request(
             **self.__legal_entity_types_get_http_params(
                 access_token=user_data['access_token'],
             ),
         )
-        if status_ != HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
-        return data["legalEntityTypes"]
+        return response.data["legalEntityTypes"]
 
     def __legal_entity_types_get_http_params(
         self,

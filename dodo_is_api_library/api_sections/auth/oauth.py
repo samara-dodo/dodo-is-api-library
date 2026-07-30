@@ -11,11 +11,11 @@ from typing import (
     Callable,
 )
 
-from dodo_is_api_library.utils.http_client import HttpMethods
 from dodo_is_api_library.utils.http_client import (
-    HttpClient,
-    HttpContentType,
+    HttpContentTypes,
     HttpMethods,
+    HttpResponseDTO,
+    http_client,
 )
 from dodo_is_api_library.utils.validators import validate_phone_number
 
@@ -137,27 +137,27 @@ class ApiOAuth:
         """
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id, user_ip=user_ip)
-        status_, data, _ = await HttpClient.send_request(
+        response: HttpResponseDTO = await http_client.send_request(
             **self.__handle_auth_callback_http_params(
                 code=code,
                 user_data=user_data,
                 override_redirect_uri=override_redirect_uri,
             ),
         )
-        if status_ != HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
         await self.__update_user_data(
             user_id=user_id,
             user_data={
-                "access_token": data["access_token"],
+                "access_token": response.data["access_token"],
                 # INFO. Запрос может не содержать scope на получение Refresh токена.
-                "refresh_token": data.get("refresh_token"),
+                "refresh_token": response.data.get("refresh_token"),
             },
         )
-        return data
+        return response.data
 
     def __handle_auth_callback_http_params(
         self,
@@ -178,7 +178,7 @@ class ApiOAuth:
                 "scope": " ".join(user_data["scopes"]),
                 "redirect_uri": override_redirect_uri or self.__redirect_uri,
             },
-            "headers": {"Content-Type": HttpContentType.APPLICATION_X_WWW_FORM_URLENCODED},
+            "headers": {"Content-Type": HttpContentTypes.APPLICATION_X_WWW_FORM_URLENCODED},
         }
 
     async def refresh_token_pair_post(
@@ -201,22 +201,22 @@ class ApiOAuth:
         """
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
-        status_, data, _ = await HttpClient.send_request(
+        response: HttpResponseDTO = await http_client.send_request(
             **self.__refresh_token_pair_post_http_params(user_data=user_data),
         )
-        if status_ != HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
         await self.__update_user_data(
             user_id=user_id,
             user_data={
-                "access_token": data["access_token"],
-                "refresh_token": data["refresh_token"],
+                "access_token": response.data["access_token"],
+                "refresh_token": response.data["refresh_token"],
             },
         )
-        return data
+        return response.data
 
     def __refresh_token_pair_post_http_params(
         self,
@@ -232,7 +232,7 @@ class ApiOAuth:
                 "grant_type": "refresh_token",
                 "refresh_token": user_data["refresh_token"],
             },
-            "headers": {"Content-Type": HttpContentType.APPLICATION_X_WWW_FORM_URLENCODED},
+            "headers": {"Content-Type": HttpContentTypes.APPLICATION_X_WWW_FORM_URLENCODED},
         }
 
     async def user_profile_get(
@@ -256,16 +256,16 @@ class ApiOAuth:
         # TODO. Вынести в общие методы.
         if user_data is None:
             user_data = await self.__get_user_data(user_id=user_id)
-        status_, data, _ = await HttpClient.send_request(
+        response: HttpResponseDTO = await http_client.send_request(
             **self.__user_profile_get_http_params(user_data=user_data),
         )
         # TODO. Вынести в общие методы.
-        if status_ != HTTPStatus.OK:
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
-        return self.__user_profile_get_process_data(data=data)
+        return self.__user_profile_get_process_data(data=response.data)
 
     def __user_profile_get_process_data(
         self,

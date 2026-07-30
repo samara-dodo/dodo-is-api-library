@@ -20,13 +20,12 @@ from dodo_is_api_library.utils.converter import (
     convert_uuids_to_str,
 )
 from dodo_is_api_library.utils.http_client import (
-    HttpClient,
     HttpMethods,
+    HttpResponseDTO,
+    http_client,
 )
 from dodo_is_api_library.utils.scopes import DodoISScopes
 from dodo_is_api_library.utils.validators import process_tin
-
-client: HttpClient = HttpClient()
 
 
 class ApiStaff():
@@ -86,13 +85,13 @@ class ApiStaff():
             units=units,
             target_datetime=target_datetime,
         )
-        status_, data, _ = await HttpClient.send_request(**http_data)
-        if status_ != HTTPStatus.OK:
+        response: HttpResponseDTO = await http_client.send_request(**http_data)
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
-        return self._couriers_on_shift_get_process_data(data=data["couriers"])
+        return self._couriers_on_shift_get_process_data(data=response.data["couriers"])
 
     def _couriers_on_shift_get_process_data(
         self,
@@ -205,14 +204,14 @@ class ApiStaff():
         )
         return_data: list[dict[str, Any]] = []
         while 1:
-            status_, data, _ = await HttpClient.send_request(**http_data)
-            if status_ != HTTPStatus.OK:
+            response: HttpResponseDTO = await http_client.send_request(**http_data)
+            if response.status_code != HTTPStatus.OK:
                 self.__raise_http_exception(
-                    status_code=status_,
-                    detail=data,
+                    status_code=response.status_code,
+                    detail=response.data,
                 )
-            return_data.extend(data["shifts"])
-            if data['isEndOfListReached'] or not take_all:
+            return_data.extend(response.data["shifts"])
+            if response.data['isEndOfListReached'] or not take_all:
                 break
             else:
                 http_data['query_params']['skip'] += http_data['query_params']['take']
@@ -355,14 +354,14 @@ class ApiStaff():
         )
         return_data: list[dict[str, Any]] = []
         while 1:
-            status_, data, _ = await HttpClient.send_request(**http_data)
-            if status_ != HTTPStatus.OK:
+            response: HttpResponseDTO = await http_client.send_request(**http_data)
+            if response.status_code != HTTPStatus.OK:
                 self.__raise_http_exception(
-                    status_code=status_,
-                    detail=data,
+                    status_code=response.status_code,
+                    detail=response.data,
                 )
-            return_data.extend(data["members"])
-            if data['isEndOfListReached'] or not take_all:
+            return_data.extend(response.data["members"])
+            if response.data['isEndOfListReached'] or not take_all:
                 break
             else:
                 http_data['query_params']['skip'] += http_data['query_params']['take']
@@ -543,13 +542,13 @@ class ApiStaff():
             phone_number=phone_number,
             taxpayer_identification_number=taxpayer_identification_number,
         )
-        status_, data, _ = await HttpClient.send_request(**http_data)
-        if status_ != HTTPStatus.OK:
+        response: HttpResponseDTO = await http_client.send_request(**http_data)
+        if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
-                status_code=status_,
-                detail=data,
+                status_code=response.status_code,
+                detail=response.data,
             )
-        return self._members_search_get_process_data(data=data["staffMatches"])
+        return self._members_search_get_process_data(data=response.data["staffMatches"])
 
     def _members_search_get_process_data(
         self,
@@ -670,14 +669,14 @@ class ApiStaff():
         )
         return_data: list[dict[str, Any]] = []
         while 1:
-            status_, data, _ = await HttpClient.send_request(**http_data)
-            if status_ != HTTPStatus.OK:
+            response: HttpResponseDTO = await http_client.send_request(**http_data)
+            if response.status_code != HTTPStatus.OK:
                 self.__raise_http_exception(
-                    status_code=status_,
-                    detail=data,
+                    status_code=response.status_code,
+                    detail=response.data,
                 )
-            return_data.extend(data["shifts"])
-            if data['isEndOfListReached'] or not take_all:
+            return_data.extend(response.data["shifts"])
+            if response.data['isEndOfListReached'] or not take_all:
                 break
             else:
                 http_data['query_params']['skip'] += http_data['query_params']['take']
@@ -792,18 +791,18 @@ class ApiStaff():
         )
         return_data: list[dict[str, Any]] = []
         while 1:
-            status_, data, _ = await HttpClient.send_request(**http_data)
-            if status_ != HTTPStatus.OK:
+            response: HttpResponseDTO = await http_client.send_request(**http_data)
+            if response.status_code != HTTPStatus.OK:
                 self.__raise_http_exception(
-                    status_code=status_,
-                    detail=data,
+                    status_code=response.status_code,
+                    detail=response.data,
                 )
-            return_data.extend(data["history"])
+            return_data.extend(response.data["history"])
             # TODO. Сделать проверку по наполнению везде.
             if (
-                not data["history"]
-                or len(data["history"]) < http_data['query_params']['take']
-                or data['isEndOfListReached']
+                not response.data["history"]
+                or len(response.data["history"]) < http_data['query_params']['take']
+                or response.data['isEndOfListReached']
                 or not take_all
             ):
                 break
