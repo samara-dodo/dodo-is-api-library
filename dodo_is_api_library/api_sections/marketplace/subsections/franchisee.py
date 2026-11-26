@@ -6,7 +6,10 @@ from http import HTTPStatus
 from typing import (
     Any,
     Callable,
+    Iterable,
+    Literal,
 )
+from uuid import UUID
 
 from dodo_is_api_library.utils.http_client import (
     HttpMethods,
@@ -33,6 +36,9 @@ class ApiFranchisee:
 
     async def units_get(
         self,
+        business_id: UUID | None = None,
+        country_id: str | None = None,
+        unit_states: Iterable[Literal["Open", "Close"]] | None = None,
         user_id: Any = None,
         user_data: dict[str, Any] | None = None,
     ) -> dict[str, list[dict[str, Any]]]:
@@ -47,6 +53,14 @@ class ApiFranchisee:
         Документация: https://docs.dodois.io/docs/marketplace/96e2e64397a05-zavedeniya-seti
         URL: https://api.dodois.io/franchisee/units
 
+        Аргументы:
+            - business_id [UUID | None]: идентификатор бизнеса в формате UUID
+            - country_id [str]: идентификатор страны в формате ISO 3166-1 alpha-2
+            - unit_states [Iterable[str]]: Состояние юнита
+
+        Требования к аргументам:
+            - если unit_states не указан, то DodoIS вернет только "Open" пиццерии.
+
         Необходимы scopes:
             - franchisee:read - получение информации о сетях заведений
         """
@@ -54,7 +68,12 @@ class ApiFranchisee:
             user_data = await self.__get_user_data(user_id=user_id)
         self.__units_get_validate_scopes(user_data=user_data)
         response: HttpResponseDTO = await http_client.send_request(
-            **self.__units_get_http_params(user_data=user_data),
+            **self.__units_get_http_params(
+                business_id=business_id,
+                country_id=country_id,
+                unit_states=unit_states,
+                user_data=user_data,
+            ),
         )
         if response.status_code != HTTPStatus.OK:
             self.__raise_http_exception(
@@ -65,6 +84,9 @@ class ApiFranchisee:
 
     def __units_get_http_params(
         self,
+        business_id: UUID | None,
+        country_id: str | None,
+        unit_states: Iterable[Literal["Open", "Close"]] | None,
         user_data: dict[str, Any],
     ) -> dict[str, Any]:
         """Возвращает параметры HTTP запроса для units_get."""
@@ -72,6 +94,16 @@ class ApiFranchisee:
             "method": HttpMethods.GET,
             "url": f"{self.__base_url}/units",
             "headers": {"Authorization": f"Bearer {user_data['access_token']}"},
+            'query_params': {
+                k: v
+                for k, v
+                in {
+                    'businessId': business_id,
+                    'countryId': country_id,
+                    'unitStates': ','.join(s for s in unit_states) if unit_states else None,
+                }.items()
+                if v is not None
+            },
         }
 
     def __units_get_validate_scopes(
